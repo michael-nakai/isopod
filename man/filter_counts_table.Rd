@@ -13,7 +13,8 @@ filter_counts_table(
   autofiltering = TRUE,
   cell_labels_table = NA,
   cell_labels_colname = NA,
-  collapse_isoforms_with_counts_below = 0
+  collapse_isoforms_with_counts_below = 6,
+  autofilter_threshold = 0.5
 )
 }
 \arguments{
@@ -42,6 +43,8 @@ when \code{cell_labels_table} is provided. Defaults to NA.}
 be collapsed together at a per-cell basis. This collapsing step is useful for reducing significant isoforms with very low counts, which may be biologically
 insignificant. This also may help reduce the number of p-value calculations in the permutation step, reducing computational load. Defaults to 0, which
 disables this feature.}
+
+\item{autofilter_threshold}{A float between 0 - 1, representing the fraction of the smallest cell group needed to pass the autofiltering step.}
 }
 \value{
 An object containing the dataframe representing the filtered transcript counts table, and a list of isoforms collapsed in each gene if

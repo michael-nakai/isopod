@@ -34,7 +34,7 @@ filter_counts_table <- function(transcript_counts_table,
                                 autofiltering = TRUE,
                                 cell_labels_table = NA,
                                 cell_labels_colname = NA,
-                                collapse_isoforms_with_counts_below = 0,
+                                collapse_isoforms_with_counts_below = 6,
                                 autofilter_threshold = 0.5) {
 
     ### Argument sanity checking
@@ -243,9 +243,11 @@ filter_counts_table <- function(transcript_counts_table,
         }
 
         # Remove rows and finalize output
-        transcript_counts_table <- transcript_counts_table[-to_remove_indexes, ]
+        if (!is.null(to_remove_indexes)) {
+            transcript_counts_table <- transcript_counts_table[-to_remove_indexes, ]
+            prop_calc_df <- prop_calc_df[-to_remove_indexes, ]
+        }
         transcript_counts_table <- as.data.frame(transcript_counts_table)
-        prop_calc_df <- prop_calc_df[-to_remove_indexes, ]
 
         # Filter the collapsed_list list to only include entries with collapsed isoforms >= 2.
         for (x in names(collapsed_list)) {

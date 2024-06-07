@@ -3,8 +3,10 @@
 #' Performs a permutation analysis using repeated chi-squared measures of significance, while shuffling cell grouping designations
 #' between each permutation. Should be run a minimum of 10,000 times to guarantee consistency in results.
 #'
+#' @import data.table
 #' @importFrom magrittr %>%
 #' @importFrom foreach %dopar%
+#' @importFrom data.table %chin%
 #' @param transcript_counts_table A dataframe with a column containing transcript IDs, a column with gene IDs for
 #' each transcript, and counts for all transcripts in all cells, with cell IDs as subsequent column names.
 #' @param cell_labels_table A dataframe with two columns: one listing all cell IDs, and the other listing the group
@@ -20,18 +22,18 @@
 #' N = (number of cell groupings * 2). The function will run at varying degrees of reduced speed if this threshold isn't met.
 #' @param do_gene_level_comparisons If set to `TRUE`, also runs a permutation analysis on gene level differences. A significant value indicates that
 #' there is a difference in transcript proportions visible at the gene level, but does not specify which transcripts show the change within the gene.
-#' @param return_detailed_pvalue_tables If set to `TRUE`, two additonal lists of dataframes will be returned containing additional information on
-#' p-values generated over the permutations. If you'd like to look into p-value distributions, this must be set to `TRUE`. Note that if this is
-#' set to `TRUE`, the resulting object generated will be very large (normally ~100GB), and therefore this option is only recommended for detailed
-#' analysis that is usually unnecessary.
-#' @param checkpoint_every_n_loops Defaults to 0. If set to an integer, a file will be saved in the current working directory containing the pvalue_storage
-#' variable every n permutations.
-#' @param checkpoint_file_location Defaults to `NA`. A filepath to a folder that will be saved if `checkpoint_every_n_loops` is set to an integer.
-#' @return A `list` of five objects: the first is a list dataframes containing p-values for each permutation, for each group.
+#' @param return_detailed_pvalue_tables If set to `TRUE`, an additonal list of dataframes will be returned containing additional information on
+#' p-values generated over the permutations. If you'd like to look into p-value distributions over the permutations, this must be set to `TRUE`.
+#' Note that if this is set to `TRUE`, the resulting object generated will be very large (normally ~100GB), and therefore this option is only
+#' recommended for further (usually unnecessary) inspection.
+#' @param cutoff A `double` (decimal) indicating the initial p-value cutoff that isoforms (and genes if gene-level comparison is enabled) must pass to be included
+#' in subsequent permutations. This cutoff applies for the first permutation only, and potentially increases the speed of each permutation by filtering down
+#' data before calculations begin. With higher cutoffs, less data is filtered. To disable filtering, set the cutoff to 1. Defaults to `0.1`.
+#' @return A `list` of four objects: the first is a list dataframes containing p-values for each permutation, for each group.
 #' The second is a list of dataframes that describe the values used in pvalue calculation for every transcript, for each group,
-#' only on the initial run (while tables were not permuted). The third and fourth are also `NA` if `return_detailed_pvalue_tables`
-#' is set to `FALSE`, otherwise they contain additional information on the p-values over permutations. The fifth is also `NA` if
-#' `do_gene_level_comparisons` is set to `FALSE`, otherwise contains a dataframe with permutation p-values for gene level transcript
+#' only on the initial run (while tables were not permuted). The third is `NA` if `return_detailed_pvalue_tables`
+#' is set to `FALSE`, otherwise it contains additional information on the p-values for each permutation. The fifth is also `NA` if
+#' `do_gene_level_comparisons` is set to `FALSE`, but otherwise contains a dataframe with permutation p-values for gene level transcript
 #' proportion differences (see the description for do_gene_level_commparisons).
 #' @examples
 #' counts_table <- data.frame('transcript_id' = c(1, 2, 3), 'gene_id' = c(1, 1, 2), 'Cell_1' = c(0, 1, 10), 'Cell_2' = c(10, 2, 5), 'Cell_3' = c(2, 5, 1))
@@ -39,12 +41,12 @@
 #' permutation_results <- get_permutation_pvals(counts_table, labels_table, 'transcript_id', 'gene_id', 'grouping', 10000, 0, TRUE, FALSE, 6000, '/user/example/folder/')
 #' @export
 
-get_permutation_pvals_old <- function(transcript_counts_table, cell_labels_table,
+get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
                                   transcript_id_colname, gene_id_colname,
                                   cell_labels_colname, permutations = 10000,
                                   cores = 0, do_gene_level_comparisons = FALSE,
                                   return_detailed_pvalue_tables = FALSE,
-                                  checkpoint_every_n_loops = 0, checkpoint_file_location = NA) {
+                                  cutoff = 0.1) {
 
     # Reduced chisq functions for isoforms and genes
     chisq.slim.test <- function(Nt, Rt, Ng, Rg)
@@ -87,11 +89,22 @@ get_permutation_pvals_old <- function(transcript_counts_table, cell_labels_table
         return(PVAL)
     }
 
-    # Main body
-    filtered_tcount <- transcript_counts_table
+    ### Main body
+
+    # Check that we're using a list that we made from the filtering function. If so, retain ONLY the counts table
+    if (length(names(transcript_counts_table)) == 2 & identical(names(transcript_counts_table), c("counts_table", "list_of_collapsed_isoforms"))) {
+        transcript_counts_table <- transcript_counts_table$counts_table
+    }
+
+    # Import and order counts table here first
+    filtered_tcount <- transcript_counts_table[order(transcript_counts_table[[gene_id_colname]], transcript_counts_table[[transcript_id_colname]]), ]
     designations <- cell_labels_table
-    initial_vals <- NA
-    newconst <- 0.00000001  # Add a very low number to avoid chi.sq errors due to a zero in the 2x2 table
+
+    # INTERNAL SETTINGS
+    newconst <- 0.1
+
+    full_ids <- filtered_tcount %>% dplyr::select({{transcript_id_colname}}, {{gene_id_colname}})
+    colnames(full_ids) <- c('transcript_id', 'gene_id')
 
     meta <- filtered_tcount %>% dplyr::select({{transcript_id_colname}}, {{gene_id_colname}})
     filtered_tcount[[transcript_id_colname]] <- NULL
@@ -101,22 +114,20 @@ get_permutation_pvals_old <- function(transcript_counts_table, cell_labels_table
     meta$counts_per_transcript_in_all_cells <- rowSums(filtered_tcount)
 
     # Split cells into cluster-specific counts tables within a list
+    # Note (2023-08-22): But this is just making a vector of cluster names for later
     clusters <- unique(designations[[cell_labels_colname]])[order(unique(designations[[cell_labels_colname]]))]
 
     # Figure out which column in designations has the grouping labels, and which has the cell labels
     cell_barcodes_col <- ifelse(colnames(designations)[1] == cell_labels_colname, 2, 1)
 
-    # For resetting purposes
-    filtered_tcount_base <- filtered_tcount
-    meta_base <- meta
-
     # Initialize pvalue_storage_new so you don't have to do it in the loop
+    # Only make the first loop's storage though, since we cut down the isoforms in loops 2+
     a <- as.data.frame(cbind(meta[[transcript_id_colname]], meta[[gene_id_colname]], rep(NA, nrow(meta))))
     colnames(a) <- c('transcript_id', 'gene_id', 'pval1')
     sublist <- rep(list(a), length(clusters))
     names(sublist) <- clusters
-    pvalue_storage_new <- rep(list(sublist), permutations)
-    names(pvalue_storage_new) <- as.character(1:permutations)
+    pvalue_storage_new <- list(sublist)
+    names(pvalue_storage_new) <- c('1')
 
     # If do_gene_level_comparisons is set, initialize pvalue_storage_gene here
     if (do_gene_level_comparisons) {
@@ -127,8 +138,6 @@ get_permutation_pvals_old <- function(transcript_counts_table, cell_labels_table
         pvalue_storage_gene <- rep(list(sublist), permutations)
         names(pvalue_storage_gene) <- as.character(1:permutations)
     }
-
-    #### LOOP START
 
     # For parallelizing foreach later on, make the socket first
     if (cores == 0) {
@@ -155,300 +164,399 @@ get_permutation_pvals_old <- function(transcript_counts_table, cell_labels_table
         }
     }
 
+    filtered_tcount_matrix <- as.matrix(filtered_tcount)
+    designations <- data.table::as.data.table(designations)
+    meta <- data.table::as.data.table(meta)
+
     # Main permutation loop
     for (loopnum in 1:permutations) {
 
         message(paste('Loop number', loopnum))
+        time_s <- Sys.time()
 
         # Estimating time left (time1 is first set during the first loop in the if (loopnum == 1) block further down)
         if ((loopnum %% 100 == 0) & (loopnum != 1)) {
             time2 <- Sys.time()
             estimated_time <- round((as.numeric(difftime(time2, time1, units = 'mins')) / 100 * (permutations - loopnum)), 2)
-            message(paste0('Estimated time to completion: ', estimated_time, ' minutes'))
+            message(paste0(Sys.time(), ' -- Estimated time to completion: ', estimated_time, ' minutes'))
             time1 <- time2
         }
-
-        # Reset filtered_tcount and meta (just in case, shouldn't actually change anything)
-        filtered_tcount <- filtered_tcount_base
-        meta <- meta_base
 
         # If we're on cycle 2+, then scramble the grouping column in designations
         if (loopnum != 1) {
             designations[[cell_labels_colname]] <- sample(designations[[cell_labels_colname]])
         }
 
+        # Split the counts table into the counts tables per cluster here
+        # The rowSums here is slow, but honestly idk what to do about it, since this is the fastest rowSums available
+        # For the pacbio 6 clusters, takes ~4.5 seconds to finish
+        # DF implementation
         cluster_counts_list <- list()
         for (cluster in clusters) {
-            cluster_counts_list[[cluster]] <- filtered_tcount[designations[which(designations[[cell_labels_colname]] == cluster), ][[colnames(designations)[cell_barcodes_col]]]]
+            cells_in_cluster <- unlist(designations[designations[[cell_labels_colname]] == cluster, ][, ..cell_barcodes_col])
+            column_indexes <- which(colnames(filtered_tcount_matrix) %in% cells_in_cluster)
+            a <- filtered_tcount_matrix[, column_indexes]
+            cluster_counts_list[[cluster]] <- rowSums(a)
         }
 
-        # rowSums per cluster in list are added to a column named 'counts_per_transcript_in_cluster' per table in cluster_counts_list
-        # This will always be the last column
-        cluster_counts_list <- lapply(cluster_counts_list, function(x) {
-            x$counts_per_transcript_in_cluster <- rowSums(x)
-            return(x)
-        })
+        # Define calc_list here, which will be used for the isoform-level calcs
+        calc_list <- list()
 
         # Retrieve the rowSums and add to meta, with cluster-specific colunm names
-        for (groupname in names(cluster_counts_list)) {
-            column_name <- paste0('counts_per_transcript_in_', groupname)
-            meta[[column_name]] <- cluster_counts_list[[groupname]][ncol(cluster_counts_list[[groupname]])]
-        }
-        #saveRDS(meta, file = "/oshlack_lab/michael.nakai/projects/testing_isopod/datasets/pacbio_pbmc/pbmc_10k_rds_saves/meta_debug_1.rds")
-
-        # Get counts per gene in all cells, then by cluster
-        # Turn meta into a data.table here, since it speeds up merging quite a bit
-        meta <- data.table::as.data.table(meta, key = gene_id_colname)
-        for (column_name in colnames(meta)[3:ncol(meta)]) {
-            sums <- aggregate(meta[[column_name]], list(temp_gene_id_here_col = meta[[gene_id_colname]]), sum)
-            clus <- paste0('counts_per_gene_in_cluster_', str_split(column_name, '_')[[1]][[5]])
-            if (clus == 'counts_per_gene_in_cluster_all') {
-                clus <- 'counts_per_gene_in_all_cells'
-            }
-            colnames(sums) <- c(gene_id_colname, clus)
-            sums <- data.table::as.data.table(sums)
-            meta <- data.table::merge.data.table(meta, sums, by = gene_id_colname, all.x = TRUE)
+        for (groupname in clusters) {
+            calc_list[[groupname]] <- data.table::data.table('transcript_id' = meta[[transcript_id_colname]], 'gene_id' = meta[[gene_id_colname]])
+            calc_list[[groupname]][['isoform_in']] <- cluster_counts_list[[groupname]]
+            calc_list[[groupname]][['isoform_out']] <- unlist(meta$counts_per_transcript_in_all_cells - calc_list[[groupname]][['isoform_in']], use.names = F)
         }
 
-        ### Calculate proportions for all and per cluster, add them into meta ###
-        # Find column index for 'counts_per_transcript_in_all_cells', until (but not including) 'counts_per_gene_in_all_cells'
-        index_with_all_cells <- grep('counts_per_transcript_in_all_cells', colnames(meta))
-        index_with_gene_counts <- grep('counts_per_gene_in_all_cells', colnames(meta))
-
-        # Make meta back into a data.frame, since we only need data.table for merging
-        meta <- as.data.frame(meta)
-
-        #saveRDS(meta, file = "/oshlack_lab/michael.nakai/projects/testing_isopod/datasets/pacbio_pbmc/pbmc_10k_rds_saves/meta_debug_2.rds")
-
-        # Loop over column names starting from the counts_per_gene_in_cluster directly after all_cells
-        colnames_to_look_at <- colnames(meta)[(index_with_all_cells+1):(index_with_gene_counts-1)]
-        for (i in 1:length(colnames_to_look_at)) {
-
-            # Calculate counts_per_transcript_in_all_cells / meta[[column_name]], then add that to a new column called paste0(cluster_name, '_transcript_within_gene_proportion')
-            column_name <- colnames_to_look_at[i]
-            current_cluster <- str_split(column_name, '_')[[1]][5]
-            gene_counts_column_name <- paste0('counts_per_gene_in_cluster_', current_cluster)
-
-            newColNameClust <- paste0('proportion_for_', current_cluster)
-            newColNameRest <- paste0('rest_proportion_for_', current_cluster) # This is the colname for the rest of the data, since we're comparing between cluster 1, then all other clusters
-            newColNameRestCountsTranscript <- paste0('counts_per_transcript_rest_in_cluster_', current_cluster)
-            newColNameRestCountsGene <- paste0('counts_for_gene_rest_in_cluster_', current_cluster)
-
-            meta[[newColNameRestCountsTranscript]] <- meta$counts_per_transcript_in_all_cells - meta[[column_name]]
-            meta[[newColNameRestCountsGene]] <- meta$counts_per_gene_in_all_cells - meta[[gene_counts_column_name]]
-
-            meta[[newColNameClust]] <- meta[[column_name]] / meta[[gene_counts_column_name]]
-            meta[[newColNameRest]] <- meta[[newColNameRestCountsTranscript]] / meta[[newColNameRestCountsGene]]
-
+        # Get gene counts per cluster, then you find ng and rg via: ng = all_gene_counts_in_cluster - nt, rg = all_gene_counts_outside_cluster - rt
+        # No-merge implementation, since the data.table merge was slightly more costly (279 milliseconds vs the no-merge 171 milliseconds avg to run the whole calc_list generation)
+        # Small savings add up over 10,000 permutations
+        for (cluster in clusters) {
+            per_gene_total <- calc_list[[cluster]][,list(in_aggregated = sum(isoform_in), out_aggregated = sum(isoform_out)), by = 'gene_id']
+            repeatnum_vec <- table(calc_list[[cluster]][['gene_id']])
+            newtab <- per_gene_total[rep(seq_along(repeatnum_vec), repeatnum_vec), ]
+            calc_list[[cluster]][['other_in']] <- newtab$in_aggregated - calc_list[[cluster]][['isoform_in']]
+            calc_list[[cluster]][['other_out']] <- newtab$out_aggregated - calc_list[[cluster]][['isoform_out']]
         }
 
-        # If the current loopnum is 1, make the second list of DFs here (for plotting steps)
-        # It's wordy, but only needs to run once, so shouldn't impact speed
+        # If the current loopnum is 1, record the current time (for use later when calculating time per permutation)
         if (loopnum == 1) {
             time1 <- Sys.time()
-            initial_vals <- vector('list', length(clusters))
-            for (clustername in clusters) {
-                ntstr <- paste0('counts_per_transcript_in_', clustername)
-                rtstr <- paste0('counts_per_transcript_rest_in_cluster_', clustername)
-                ngstr <- paste0('counts_per_gene_in_cluster_', clustername)
-                rgstr <- paste0('counts_for_gene_rest_in_cluster_', clustername)
+        }
 
-                initial_vals_df <- meta %>% dplyr::select({{transcript_id_colname}}, {{gene_id_colname}})
-                initial_vals_df[['nt']] <- meta[[ntstr]]
-                initial_vals_df[['rt']] <- meta[[rtstr]]
-                initial_vals_df[['ng']] <- meta[[ngstr]] - meta[[ntstr]]
-                initial_vals_df[['rg']] <- meta[[rgstr]] - meta[[rtstr]]
-
-                initial_vals[[clustername]] <- initial_vals_df
+        # If we're on loops 2+, subset the gene list to genes that had an initial pval =< cutoff
+        # NOTE (15/12/2023): Changed to filter dynamically for each cluster
+        if (do_gene_level_comparisons) {
+            calc_list_gene <- list()
+            if (loopnum > 1) {
+                for (cluster in clusters) {
+                    calc_list_gene[[cluster]] <- calc_list[[cluster]][calc_list[[cluster]][['gene_id']] %chin% list_of_genes_to_keep[[cluster]], ]
+                }
+            } else {
+                calc_list_gene <- calc_list
             }
         }
 
         # Do the gene-level pval calculations here
+        # NOTE (15/12/2023): We round the pvalues to 10 digits here, both to save space later on and because R doesn't accurately calculate beyond ~15 decimals
+        # Honestly if your statstical test depends on decimals beyond 10^-10, is it really a good test in the first place?
         if (do_gene_level_comparisons) {
-            tempresultsgene <- foreach::foreach (iter = 1:length(clusters), .combine = 'cbind', .multicombine = T, .packages = 'parallel') %dopar% {
+            tempresultsgene <- foreach::foreach (iter = 1:length(clusters), .multicombine = T, .packages = 'parallel') %dopar% {
                 cluster_name <- clusters[iter]
-                ntstr <- paste0('counts_per_transcript_in_', cluster_name)
-                rtstr <- paste0('counts_per_transcript_rest_in_cluster_', cluster_name)
 
-                vec_in <- lapply(split(meta[[ntstr]], meta[[gene_id_colname]]), FUN = function(x) c(x) + newconst)
-                vec_out <- lapply(split(meta[[rtstr]], meta[[gene_id_colname]]), FUN = function(x) c(x) + newconst)
+                vec_in <- lapply(split(calc_list_gene[[cluster_name]][["isoform_in"]], calc_list_gene[[cluster_name]][["gene_id"]]), FUN = function(x) c(x) + newconst)
+                vec_out <- lapply(split(calc_list_gene[[cluster_name]][["isoform_out"]], calc_list_gene[[cluster_name]][["gene_id"]]), FUN = function(x) c(x) + newconst)
 
-                pval_vector <-  parallel::mcmapply(chisq.slim.gene.test,
-                                                   vec_in,
-                                                   vec_out,
-                                                   mc.cores = mcmapply_reserved_cores)
+                pval_vector <- parallel::mcmapply(chisq.slim.gene.test,
+                                                  vec_in,
+                                                  vec_out,
+                                                  mc.cores = mcmapply_reserved_cores)
 
-                pval_vector
+                pval_vector <- round(pval_vector, digits = 10)
+                pval_table_gene <- as.data.frame(matrix(NA, nrow = length(pval_vector), ncol = 2))
+                colnames(pval_table_gene) <- c('gene_id', 'pval1')
+                pval_table_gene$gene_id <- names(pval_vector)
+                pval_table_gene$pval1 <- unname(pval_vector)
+                pval_table_gene
             }
-            i <- 1
-            for (clust_name in names(pvalue_storage_gene[[as.character(loopnum)]])) {
-                pvalue_storage_gene[[as.character(loopnum)]][[clust_name]]$pval1 <- tempresultsgene[, i]
-                i <- i + 1
+
+            # If we're in the first loop OR on loop 3+, we can just assign to the pval1 column for pvalue_storage_gene[[loopnum]][[cluster]]
+            if ((loopnum == 1) | (loopnum >= 3)) {
+                i <- 1
+                for (cluster in clusters) {
+                    pvalue_storage_gene[[as.character(loopnum)]][[cluster]]$pval1 <- tempresultsgene[[i]]$pval1
+                    i <- i + 1
+                }
+
+                # If we're on loop 2, we make the rest of the tables for other iterations in pvalue_storage_gene since we didn't know which isoforms we were gonna calculate until now
+                # We also fill out the second loop's pvals per cluster
+                # TODO: This either needs to be changed to generate unique tables per cluster from permutation 2+ (since isoforms calculated per cluster changes),
+                #       or we need to insert NAs for isoforms filtered out per cluster to the p-value vectors.
+                # IMPLEMENTATION NOTE (15/12/2023): Neither of the above. Instead, a unique table for each cluster is made, filled with only the genes kept in that cluster
+            } else if (loopnum == 2) {
+                temp <- pvalue_storage_gene$`1`
+                sublist <- vector(mode = 'list', length(clusters))
+                names(sublist) <- clusters
+                for (cluster in clusters) {
+                    sublist[[cluster]] <- data.table::data.table('gene_id' = unique(calc_list_gene[[cluster]][['gene_id']]),
+                                                                 'pval1' = rep(NA, length(unique(calc_list_gene[[cluster]][['gene_id']]))))
+                }
+
+                pvalue_storage_gene <- rep(list(sublist), permutations)
+                names(pvalue_storage_gene) <- c(as.character(1:permutations))
+                pvalue_storage_gene[['1']] <- temp
+
+                i <- 1
+                for (cluster in names(pvalue_storage_gene[[as.character(loopnum)]])) {
+                    pvalue_storage_gene[[as.character(loopnum)]][[cluster]]$pval1 <- tempresultsgene[[i]]$pval1
+                    i <- i + 1
+                }
             }
         }
+
+        # If we're on loop 2+, we now cut down the calc_list tables to only include isoforms in the vector sig_in_at_least_one_cluster
+        # We need to do this AFTER the gene-level calcs are done, since they rely on having all the rows for all isoforms in a gene
+        # This is actually an easy fix! We're already looping over all clusters, we can just force it to filter from a list of vectors instead of one vector
+        if (loopnum > 1) {
+            for (cluster in clusters) {
+                calc_list[[cluster]] <- calc_list[[cluster]][calc_list[[cluster]][['transcript_id']] %in% list_of_isos_to_keep[[cluster]], ]
+            }
+        }
+
 
         ### Do the chi-square test ###
         #
         # CONTINGENCY TABLE
         # For each transcript, make a 2x2 contingency table that looks like:
         #
-        # Nt      Rt
-        # Ng-Nt   Rg-Rt
+        # Nt    Rt
+        # Ng    Rg
         #
         # Where:
-        # Nt = Transcript count in cluster (meta$counts_per_transcript_in_cluster_x)
-        # Rt = Transcript count all other cells (meta$counts_per_transcript_rest_in_cluster_x)
-        # Ng = All counts of all transcripts for gene in cluster (meta$counts_for_gene_in_cluster_x)
-        # Rg = All counts of all transcripts for gene in rest (meta$counts_for_gene_rest_in_cluster_x)
+        # Nt = Isoform count in cluster (isoform_in)
+        # Rt = Isoform count all other cells (isoform_out)
+        # Ng = All counts of all other isoforms for gene in cluster (other_in)
+        # Rg = All counts of all other isoforms for gene in rest (other_out)
 
-        # If this is the first loop, we need to find the indices to skip, so we need to store the transcript_id column to relate back later
-        if (loopnum == 1) {
-            transcript_ids <- meta[[transcript_id_colname]]
-        }
-
-        # Temporarily cut off transcript_id, and gene_id for mapply to work
-        meta[[transcript_id_colname]] <- NULL
-        meta[[gene_id_colname]] <- NULL
-
-        # Loop over all clusters (in the same order as colnames_to_look_at)
-        tempresults <- foreach::foreach (iter = 1:length(clusters), .combine = 'cbind', .multicombine = T, .packages = 'parallel') %dopar% {
+        # Loop over all clusters (RETURNS A LIST OF TABLES)
+        # TODO: This only needs to return a list of tables for loop 2. From loop 3+, it can just return a list of vectors that get slotted into the pre-made p-value tables
+        tempresults <- foreach::foreach (iter = 1:length(clusters), .multicombine = T, .packages = 'parallel') %dopar% {
             cluster_name <- clusters[iter]
-            ntstr <- paste0('counts_per_transcript_in_', cluster_name)
-            rtstr <- paste0('counts_per_transcript_rest_in_cluster_', cluster_name)
-            ngstr <- paste0('counts_per_gene_in_cluster_', cluster_name)
-            rgstr <- paste0('counts_for_gene_rest_in_cluster_', cluster_name)
 
             pval_vector <-  parallel::mcmapply(chisq.slim.test,
-                                               meta[[ntstr]] + newconst,
-                                               meta[[rtstr]] + newconst,
-                                               meta[[ngstr]] - meta[[ntstr]] + newconst,
-                                               meta[[rgstr]] - meta[[rtstr]] + newconst,
+                                               calc_list[[cluster_name]][['isoform_in']] + newconst,
+                                               calc_list[[cluster_name]][['isoform_out']] + newconst,
+                                               calc_list[[cluster_name]][['other_in']] + newconst,
+                                               calc_list[[cluster_name]][['other_out']] + newconst,
                                                mc.cores = mcmapply_reserved_cores)
 
-            pval_vector
+            pval_vector <- round(pval_vector, digits = 10)
+            pval_table <- as.data.frame(matrix(NA, nrow = length(pval_vector), ncol = 3))
+            colnames(pval_table) <- c('transcript_id', 'gene_id', 'pval1')
+            pval_table$transcript_id <- calc_list[[cluster_name]][['transcript_id']]
+            pval_table$gene_id <- calc_list[[cluster_name]][['gene_id']]
+            pval_table$pval1 <- pval_vector
+            pval_table
 
         }
-        i <- 1
-        for (clust_name in names(pvalue_storage_new[[as.character(loopnum)]])) {
-            pvalue_storage_new[[as.character(loopnum)]][[clust_name]]$pval1 <- tempresults[, i]
-            i <- i + 1
+
+        # If we're in the first loop OR on loop 3+, we can just assign to the pval1 column for pvalue_storage_new[[loopnum]][[cluster]]
+        if ((loopnum == 1) | (loopnum >= 3)) {
+            i <- 1
+            for (cluster in clusters) {
+                pvalue_storage_new[[as.character(loopnum)]][[cluster]]$pval1 <- tempresults[[i]]$pval1
+                if (return_detailed_pvalue_tables) {
+                    pvalue_storage_new[[as.character(loopnum)]][[cluster]]$isoform_in <- calc_list[[cluster]][['isoform_in']]
+                    pvalue_storage_new[[as.character(loopnum)]][[cluster]]$isoform_out <- calc_list[[cluster]][['isoform_out']]
+                    pvalue_storage_new[[as.character(loopnum)]][[cluster]]$other_in <- calc_list[[cluster]][['other_in']]
+                    pvalue_storage_new[[as.character(loopnum)]][[cluster]]$other_out <- calc_list[[cluster]][['other_out']]
+                }
+                i <- i + 1
+            }
+
+            # If we're on loop 2, we make the rest of the tables for other iterations in pvalue_storage_new since we didn't know which isoforms we were gonna calculate until now
+            # We also fill out the second loop's pvals per cluster
+        } else if (loopnum == 2) {
+            temp <- pvalue_storage_new$`1`
+            sublist <- vector(mode = 'list', length(clusters))
+            names(sublist) <- clusters
+            for (cluster in clusters) {
+                if (return_detailed_pvalue_tables) {
+                    sublist[[cluster]] <- data.table::data.table('transcript_id' = calc_list[[cluster]][['transcript_id']],
+                                                                 'gene_id' = calc_list[[cluster]][['gene_id']],
+                                                                 'pval1' = rep(NA, length(calc_list[[cluster]][['transcript_id']])),
+                                                                 'isoform_in' = rep(NA, length(calc_list[[cluster]][['transcript_id']])),
+                                                                 'isoform_out' = rep(NA, length(calc_list[[cluster]][['transcript_id']])),
+                                                                 'other_in' = rep(NA, length(calc_list[[cluster]][['transcript_id']])),
+                                                                 'other_out' = rep(NA, length(calc_list[[cluster]][['transcript_id']])))
+                } else {
+                    sublist[[cluster]] <- data.table::data.table('transcript_id' = calc_list[[cluster]][['transcript_id']],
+                                                                 'gene_id' = calc_list[[cluster]][['gene_id']],
+                                                                 'pval1' = rep(NA, length(calc_list[[cluster]][['transcript_id']])))
+                }
+            }
+
+            pvalue_storage_new <- rep(list(sublist), permutations)
+            names(pvalue_storage_new) <- c(as.character(1:permutations))
+            pvalue_storage_new[['1']] <- temp
+
+            i <- 1
+            for (cluster in names(pvalue_storage_new[[as.character(loopnum)]])) {  # Fill out pvalue_storage_new dataframe for each cluster
+                pvalue_storage_new[[as.character(loopnum)]][[cluster]]$pval1 <- tempresults[[i]]$pval1
+
+                if (return_detailed_pvalue_tables) {
+                    pvalue_storage_new[[as.character(loopnum)]][[cluster]]$isoform_in <- calc_list[[cluster]][['isoform_in']]
+                    pvalue_storage_new[[as.character(loopnum)]][[cluster]]$isoform_out <- calc_list[[cluster]][['isoform_out']]
+                    pvalue_storage_new[[as.character(loopnum)]][[cluster]]$other_in <- calc_list[[cluster]][['other_in']]
+                    pvalue_storage_new[[as.character(loopnum)]][[cluster]]$other_out <- calc_list[[cluster]][['other_out']]
+                }
+
+                i <- i + 1
+            }
         }
 
-        # TODO
-        # If this is the first loop, find the indices of the isoforms that have a p < cutoff, and add them to a comparison vector here
+        # If this is the first loop, find the indices of the isoforms that have a p < cutoff, and add them to a vector here
+        # For reference, this eliminates the majority of isoforms, speeding everything up
+        # Split into two parts, depending on whether gene-level comparisons are being calculated or not
+        # We need to make a list of vectors, so we can remove isoforms on a per-cluster basis
         if (loopnum == 1) {
-            comparison_vec <- c()
-        }
 
-        # Save file if checkpoint is reached
-        if ((checkpoint_every_n_loops > 0) & (!(is.na(checkpoint_file_location)))) {
-            if (loopnum %% checkpoint_every_n_loops == 0) {
-                message('Checkpoint reached, saving transcript pvalues...')
-                saveRDS(pvalue_storage_new, paste0(checkpoint_file_location, 'pvalue_storage_new.rds'))
-                message(paste0('Saved to: ', checkpoint_file_location, 'pvalue_storage_new.rds'))
-                if (do_gene_level_comparisons) {
-                    message('Checkpoint reached, saving gene pvalues...')
-                    saveRDS(pvalue_storage_gene, paste0(checkpoint_file_location, 'pvalue_storage_gene.rds'))
-                    message(paste0('Saved to: ', checkpoint_file_location, 'pvalue_storage_gene.rds'))
+            # If we're on loop 1, store calc_list for retrieval later
+            calc_list_for_later <- calc_list
+
+            if (do_gene_level_comparisons) {
+                calc_list_gene_for_later <- calc_list_gene
+
+                # Isos to keep needs to be as a vector of strings, since it's too slow/complicated to make the T/F vector due to previous cluster-based filtering with genes
+                # Genes to keep needs to be as a vector of strings, since it's too slow/complicated to make the T/F vector due to repeats
+                # Genes to keep should also include genes that may not have passed the initial cutoff, but are associated with isoforms that need to be kept
+                list_of_isos_to_keep <- vector(mode = 'list', length = length(clusters))
+                list_of_genes_to_keep <- vector(mode = 'list', length = length(clusters))
+                names(list_of_isos_to_keep) <- clusters
+                names(list_of_genes_to_keep) <- clusters
+
+                for (cluster in clusters) {
+                    list_of_isos_to_keep[[cluster]] <- pvalue_storage_new$`1`[[cluster]][pvalue_storage_new$`1`[[cluster]][['pval1']] <= cutoff, 'transcript_id']
+                    list_of_genes_to_keep[[cluster]] <- unique(pvalue_storage_gene$`1`[[cluster]][pvalue_storage_gene$`1`[[cluster]][['pval1']] <= cutoff, 'gene_id'])
+                    list_of_genes_to_keep[[cluster]] <- unique(list_of_genes_to_keep[[cluster]],
+                                                               pvalue_storage_new$`1`[[cluster]][['transcript_id']][list_of_isos_to_keep[[cluster]]])
+                }
+
+            # If we're not calculating gene-level significance, we just keep genes that are associated with the isoforms we keep
+            } else {
+                list_of_isos_to_keep <- vector(mode = 'list', length = length(clusters))
+                list_of_genes_to_keep <- vector(mode = 'list', length = length(clusters))
+                names(list_of_isos_to_keep) <- clusters
+                names(list_of_genes_to_keep) <- clusters
+
+                for (cluster in clusters) {
+                    list_of_isos_to_keep[[cluster]] <- pvalue_storage_new$`1`[[cluster]][pvalue_storage_new$`1`[[cluster]][['pval1']] <= cutoff, 'transcript_id']
+                    list_of_genes_to_keep[[cluster]] <- unique(pvalue_storage_new$`1`[[cluster]][['gene_id']][list_of_isos_to_keep[[cluster]]])
                 }
             }
         }
+
+        # time_e <- Sys.time()
+        # message(paste0('Loop took ', time_e - time_s, ' seconds'))
     }
 
     parallel::stopCluster(cl)
 
-    # Start calculating permutation p-values here
-    pval_table <- pvalue_storage_new$'1'
+    ### PVALUE CALCULATIONS
+    # Find the p-values for each isoform that we keep, and store them in a list of vectors (per cluster)
+    # Also make a list of vectors where every position is an isoform in the tid column of calc_list (for counting later)
+    initial_pvals <- list()
+    transcript_pval_count <- list()
+    for (cluster in clusters) {
+        initial_pvals[[cluster]] <- pvalue_storage_new[['1']][[cluster]][['pval1']][pvalue_storage_new[['1']][[cluster]][['transcript_id']] %in% pvalue_storage_new[['2']][[cluster]][['transcript_id']]]
+        transcript_pval_count[[cluster]] <- rep(0, length(initial_pvals[[cluster]]))
+    }
+
+    # Go through each loop from 2 onwards, and go through each cluster sequentially.
+    # Compare to the initial pval, and if less than or equal to, add 1 to position in vec.
     for (loopname in names(pvalue_storage_new)) {
         if (loopname != '1') {
-            for (clustername in clusters) {
-                pval_table[[clustername]] <- cbind(pval_table[[clustername]], as.data.frame(pvalue_storage_new[[loopname]][[clustername]][['pval1']]))
+            for (cluster in clusters) {
+                transcript_pval_count[[cluster]] <- transcript_pval_count[[cluster]] +
+                    (pvalue_storage_new[[loopname]][[cluster]][['pval1']] <= initial_pvals[[cluster]])
             }
         }
     }
 
-    for (clus in names(pval_table)) {
-        colnames(pval_table[[clus]]) <- c(c(transcript_id_colname, gene_id_colname), c(as.character(1:length(names(pvalue_storage_new)))))
-    }
+    # Design the final table for presentation
+    # Should have the columns 'transcript_id', 'gene_id', and one column of p-values per cluster
+    permutation_pvals <- full_ids
+    colnames(permutation_pvals) <- c('transcript_id', 'gene_id')
 
-    # Count num of times p-val is equal or less than initial p-val
-    initial_pvals <- pvalue_storage_new$'1'  # This is a list of vectors
-    for (clustername in names(initial_pvals)) {
-        initial_pvals[[clustername]] <- initial_pvals[[clustername]][['pval1']]
-    }
-
-    # Initialize df to store
-    pval_count <- data.frame(matrix(ncol = length(names(pvalue_storage_new$'1')) + 2, nrow = length(pvalue_storage_new$'1'[[clusters[1]]][[transcript_id_colname]])))
-    colnames(pval_count) <- c(transcript_id_colname, gene_id_colname, names(pval_table))
-    pval_count[[transcript_id_colname]] <- pvalue_storage_new$'1'[[clusters[1]]][[transcript_id_colname]]
-    pval_count[[gene_id_colname]] <- pvalue_storage_new$'1'[[clusters[1]]][[gene_id_colname]]
-
-    # Count here
-    if (permutations > 1) {
-        for (clustername in names(pval_table)) {
-            countvec <- pval_table[[clustername]][['2']] <= initial_pvals[[clustername]]
-            for (column in pval_table[[clustername]][, 5:ncol(pval_table[[clustername]])]) {
-                countvec <- countvec + (column <= initial_pvals[[clustername]])
-            }
-            pval_count[[clustername]] <- countvec / permutations
+    # First find the indexes of the tids we kept throughout, so we know where to put the values (per cluster)
+    # Calculate pvals, then make a vec of NAs and insert pvals into correct positions before appending to final table
+    for (cluster in clusters) {
+        tid_idx <- which(permutation_pvals$transcript_id %in% pvalue_storage_new[['2']][[cluster]][['transcript_id']])
+        final_pvals <- transcript_pval_count[[cluster]] / (permutations - 1)
+        to_insert <- rep(NA, nrow(permutation_pvals))
+        for (i in 1:length(tid_idx)) {
+            to_insert[tid_idx[i]] <- final_pvals[i]
         }
-    } else {
-        for (clustername in names(pval_table)) {
-            pval_count[[clustername]] <- initial_pvals[[clustername]]
-        }
+        permutation_pvals[[cluster]] <- to_insert
     }
 
-    # Do it all again for gene-level pvals if do_gene_level_comparisons is TRUE
+    # If gene-level pvals were also calculated, we make another table of gene-level pvals
     if (do_gene_level_comparisons) {
-        pval_table_gene <- pvalue_storage_gene$'1'
-        for (loopname in names(pvalue_storage_new)) {
+
+        initial_pvals <- list()
+        gene_pval_count <- list()
+        for (cluster in clusters) {
+            initial_pvals[[cluster]] <- pvalue_storage_gene[['1']][[cluster]][which(pvalue_storage_gene[['1']][[cluster]][['gene_id']] %in% unique(calc_list_gene[[cluster]][['gene_id']])), 'pval1']
+            gene_pval_count[[cluster]] <- rep(0, length(initial_pvals[[cluster]]))
+        }
+
+        # Go through each loop from 2 onwards, and go through each cluster sequentially.
+        # Compare to the initial pval, and if less than or equal to, add 1 to position in vec.
+        for (loopname in names(pvalue_storage_gene)) {
             if (loopname != '1') {
-                for (clustername in clusters) {
-                    pval_table_gene[[clustername]] <- cbind(pval_table_gene[[clustername]], as.data.frame(pvalue_storage_gene[[loopname]][[clustername]][['pval1']]))
+                for (cluster in clusters) {
+                    gene_pval_count[[cluster]] <- gene_pval_count[[cluster]] +
+                        (pvalue_storage_gene[[loopname]][[cluster]][['pval1']] <= initial_pvals[[cluster]])
                 }
             }
         }
 
-        for (clus in names(pval_table_gene)) {
-            colnames(pval_table_gene[[clus]]) <- c(c(gene_id_colname), c(as.character(1:length(names(pvalue_storage_gene)))))
-        }
+        # Design the final table for presentation
+        # Should have the column 'gene_id' and one column of p-values per cluster
+        permutation_pvals_gene <- pvalue_storage_gene$`1`[[clusters[1]]] %>% dplyr::select(gene_id)
 
-        # Count num of times p-val is equal or less than initial p-val
-        initial_pvals_gene <- pvalue_storage_gene$'1'  # This is a list of vectors
-        for (clustername in names(initial_pvals)) {
-            initial_pvals_gene[[clustername]] <- initial_pvals_gene[[clustername]][['pval1']]
-        }
-
-        # Initialize df to store
-        pval_count_gene <- data.frame(matrix(ncol = length(names(pvalue_storage_gene$'1')) + 1, nrow = length(pvalue_storage_gene$'1'[[clusters[1]]][[gene_id_colname]])))
-        colnames(pval_count_gene) <- c(gene_id_colname, names(pval_table_gene))
-        pval_count_gene[[gene_id_colname]] <- pvalue_storage_gene$'1'[[clusters[1]]][[gene_id_colname]]
-
-        # Count here
-        if (permutations > 1) {
-            for (clustername in names(pval_table_gene)) {
-                countvec <- pval_table_gene[[clustername]][['2']] <= initial_pvals_gene[[clustername]]
-                for (column in pval_table_gene[[clustername]][, 3:ncol(pval_table_gene[[clustername]])]) {
-                    countvec <- countvec + (column <= initial_pvals_gene[[clustername]])
-                }
-                pval_count_gene[[clustername]] <- countvec / permutations
+        # First find the indexes of the gids we kept throughout, so we know where to put the values
+        # Calculate pvals, then make a vec of NAs and insert pvals into correct positions before appending to final table
+        for (cluster in clusters) {
+            gid_idx <- which(permutation_pvals_gene$gene_id %in% pvalue_storage_gene$`2`[[clusters[1]]][['gene_id']])
+            final_pvals <- gene_pval_count[[cluster]] / permutations
+            to_insert <- rep(NA, nrow(permutation_pvals_gene))
+            for (i in 1:length(tid_idx)) {
+                to_insert[gid_idx[i]] <- final_pvals[i]
             }
-        } else {
-            for (clustername in names(pval_table_gene)) {
-                pval_count_gene[[clustername]] <- initial_pvals_gene[[clustername]]
-            }
+            permutation_pvals_gene[[cluster]] <- to_insert
         }
     }
+
+    # Make an initial pvals table to return
+    initial_pvals_table <- full_ids
+    colnames(initial_pvals_table) <- c('transcript_id', 'gene_id')
+    for (cluster in clusters) {
+        initial_pvals_table[[cluster]] <- pvalue_storage_new$`1`[[cluster]][['pval1']]
+    }
+
+    # Make the initial pvals for genes if needed
+    if (do_gene_level_comparisons) {
+        initial_pvals_table_gene <- pvalue_storage_gene$`1`[[clusters[1]]] %>% dplyr::select(gene_id)
+        for (cluster in clusters) {
+            initial_pvals_table_gene[[cluster]] <- pvalue_storage_gene$`1`[[cluster]][['pval1']]
+        }
+    }
+
+    # Make the odds ratio table
+    # Note that you can't do this for genes, since you don't make a 2x2 contingency
+    ortab <- full_ids
+    for (cluster in clusters) {
+        temptab <- calc_list_for_later[[cluster]]
+        ortab[[cluster]] <- ((temptab$isoform_in + newconst) * (temptab$other_out + newconst)) / ((temptab$isoform_out + newconst) * (temptab$other_in + newconst))
+    }
+
 
     if (!(return_detailed_pvalue_tables)) {
         pvalue_storage_new <- NA
-        pval_table <- NA
-    } else if (!(do_gene_level_comparisons)) {
-        pval_table_gene <- NA
     }
 
-    to_return <- list('p_values' = pval_count, 'initial_pvalue_calculation_values' = initial_vals,
-                      'pvalue_storage_list' = pvalue_storage_new, 'pval_table' = pval_table,
-                      'pvalues_gene' = pval_count_gene)
+    if (!(do_gene_level_comparisons)) {
+        permutation_pvals_gene <- NA
+        initial_pvals_table_gene <- NA
+        calc_list_gene_for_later <- NA
+        ortab_gene <- NA
+    }
+
+    to_return <- list('permutation_pvalues' = permutation_pvals, 'first-loop_pvalues' = initial_pvals_table,
+                      'pvalue_storage_list' = pvalue_storage_new, 'permutation_pvalues_gene' = permutation_pvals_gene,
+                      'first-loop_pvalues_gene' = initial_pvals_table_gene, 'first-loop_contingency_tables' = calc_list_for_later,
+                      'first-loop_contingency_tables_gene' = calc_list_gene_for_later, 'odds_ratio_table' = ortab)
     return(to_return)
 }

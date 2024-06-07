@@ -2,9 +2,9 @@
 
 export(generate_prop_tables)
 export(get_permutation_pvals)
-export(get_permutation_pvals_old)
 export(make_plots)
 export(run_everything)
 import(data.table)
+importFrom(data.table,"%chin%")
 importFrom(foreach,"%dopar%")
 importFrom(magrittr,"%>%")
