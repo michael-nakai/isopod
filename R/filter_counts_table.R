@@ -7,7 +7,6 @@
 #' each transcript, and counts for all transcripts in all cells, with cell IDs as subsequent column names.
 #' @param transcript_id_colname A string corresponding to the column name in transcript_counts_table where the transcript IDs are stored.
 #' @param gene_id_colname A string corresponding to the column name in transcript_counts_table where the gene IDs are stored.
-#' @param filter_genes_with_one_transcript A boolean defining whether genes with one associated transcript should be removed. Defaults to `TRUE`.
 #' @param gene_count_threshold An integer. If the total counts for all transcripts in a gene is below this number, the transcripts will be filtered
 #' out of the table. Defaults to 0, which disables this filtering step.
 #' @param autofiltering A boolean. If `TRUE`, removes genes where at least N cells per group do not contain counts for the gene, where N is half the cell
@@ -18,8 +17,8 @@
 #' when `cell_labels_table` is provided. Defaults to NA.
 #' @param collapse_isoforms_with_counts_below An integer. If set to an integer higher than 1, isoforms within a gene that have n total counts or less will
 #' be collapsed together at a per-cell basis. This collapsing step is useful for reducing significant isoforms with very low counts, which may be biologically
-#' insignificant. This also may help reduce the number of p-value calculations in the permutation step, reducing computational load. Defaults to 0, which
-#' disables this feature.
+#' insignificant. This also may help reduce the number of p-value calculations in the permutation step, reducing computational load. Defaults to 6. Setting this
+#' to 0 disables the feature.
 #' @param autofilter_threshold A float between 0 - 1, representing the fraction of the smallest cell group needed to pass the autofiltering step.
 #' @return An object containing the dataframe representing the filtered transcript counts table, and a list of isoforms collapsed in each gene if
 #' `collapse_isoforms_with_counts_below` is greater than 0. The list of collapsed isoforms is of the form gene_id --> vector of collapsed isoform IDs.
@@ -29,13 +28,13 @@
 
 filter_counts_table <- function(transcript_counts_table,
                                 transcript_id_colname, gene_id_colname,
-                                filter_genes_with_one_transcript = TRUE,
                                 gene_count_threshold = 0,
                                 autofiltering = TRUE,
                                 cell_labels_table = NA,
                                 cell_labels_colname = NA,
                                 collapse_isoforms_with_counts_below = 6,
                                 autofilter_threshold = 0.5) {
+
 
     ### Argument sanity checking
     # Check that transcript_counts_table is a dataframe, matrix, or NULL object. If NULL, a more descriptive error will be raised later.
@@ -90,23 +89,22 @@ filter_counts_table <- function(transcript_counts_table,
                                                            which(colnames(transcript_counts_table) == gene_id_colname),
                                                            which(!(colnames(transcript_counts_table) %in% c(transcript_id_colname, gene_id_colname))))]
 
+
     # Filter genes with one associated transcript if argument is set
-    if (filter_genes_with_one_transcript) {
+    write('Filtering genes with one associated transcript', stdout())
 
-        write('Filtering genes with one associated transcript', stdout())
+    transcript_counts_table[['temp_gene_id_new']] <- transcript_counts_table[[gene_id_colname]]
 
-        transcript_counts_table[['temp_gene_id_new']] <- transcript_counts_table[[gene_id_colname]]
+    transcript_counts_table <- transcript_counts_table %>%
+        dplyr::group_by(temp_gene_id_new) %>%
+        dplyr::filter(n() > 1)
 
-        transcript_counts_table <- transcript_counts_table %>%
-            dplyr::group_by(temp_gene_id_new) %>%
-            dplyr::filter(n() > 1)
+    transcript_counts_table[['temp_gene_id_new']] <- NULL
+    transcript_counts_table <- transcript_counts_table[order(transcript_counts_table[[gene_id_colname]], transcript_counts_table[[transcript_id_colname]]), ]
 
-        transcript_counts_table[['temp_gene_id_new']] <- NULL
-        transcript_counts_table <- transcript_counts_table[order(transcript_counts_table[[gene_id_colname]], transcript_counts_table[[transcript_id_colname]]), ]
+    # Remove the genes from prop_calc_df too, just in case we're also filtering by gene_count_threshold
+    prop_calc_df <- prop_calc_df[prop_calc_df[[transcript_id_colname]] %in% transcript_counts_table[[transcript_id_colname]], ]
 
-        # Remove the genes from prop_calc_df too, just in case we're also filtering by gene_count_threshold
-        prop_calc_df <- prop_calc_df[prop_calc_df[[transcript_id_colname]] %in% transcript_counts_table[[transcript_id_colname]], ]
-    }
 
     # Filter genes with counts below a threshold if argument is set
     if (gene_count_threshold > 0) {
@@ -118,6 +116,7 @@ filter_counts_table <- function(transcript_counts_table,
         # Remove the genes from prop_calc_df too, just in case we're also filtering by gene_count_threshold
         prop_calc_df <- prop_calc_df[prop_calc_df[[transcript_id_colname]] %in% transcript_counts_table[[transcript_id_colname]], ]
     }
+
 
     # Run the autofiltering step here (heuristics filtering)
     if (autofiltering) {
@@ -165,6 +164,7 @@ filter_counts_table <- function(transcript_counts_table,
         }
 
     }
+
 
     # Run the collapse step here
     if (collapse_isoforms_with_counts_below > 0) {

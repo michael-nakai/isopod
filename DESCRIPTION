@@ -1,6 +1,6 @@
-Package: diuPackage
+Package: isopod
 Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Version: 0.1
 Authors@R: 
     person("Michael", "Nakai", , "michael.nakai@petermac.org", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-6400-8007"))

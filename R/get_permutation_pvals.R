@@ -127,6 +127,7 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
 
         if (g1na & g2na & !runall) {
             stop(paste0('The arguments analysis_group_1, analysis_group_2, and run_on_all_groups have not been set.\n',
+                        'Depending on what you want to compare, set the variables as listed below.\n',
                         '-------------------------\n',
                         'Analysing every cell group against all non-group cells (computationally intensive):\n',
                         '\t- Set run_on_all_groups to TRUE\n',
@@ -558,7 +559,7 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
                                                                pvalue_storage_new$`1`[[cluster]][['transcript_id']][list_of_isos_to_keep[[cluster]]])
                 }
 
-            # If we're not calculating gene-level significance, we just keep genes that are associated with the isoforms we keep
+                # If we're not calculating gene-level significance, we just keep genes that are associated with the isoforms we keep
             } else {
                 list_of_isos_to_keep <- vector(mode = 'list', length = length(clusters))
                 list_of_genes_to_keep <- vector(mode = 'list', length = length(clusters))
@@ -645,7 +646,7 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
         # Calculate pvals, then make a vec of NAs and insert pvals into correct positions before appending to final table
         for (cluster in clusters) {
             gid_idx <- which(permutation_pvals_gene$gene_id %in% pvalue_storage_gene$`2`[[clusters[1]]][['gene_id']])
-            final_pvals <- gene_pval_count[[cluster]] / permutations
+            final_pvals <- gene_pval_count[[cluster]] / (permutations - 1)
             to_insert <- rep(NA, nrow(permutation_pvals_gene))
             for (i in 1:length(tid_idx)) {
                 to_insert[gid_idx[i]] <- final_pvals[i]

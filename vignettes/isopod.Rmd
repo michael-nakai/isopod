@@ -1,0 +1,56 @@
+---
+title: "isopod - A tool for finding differential isoform usage in isoform-level single-cell datasets"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{isopod}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(diuPackage)
+```
+
+# Overview
+
+isopod is an R package that attempts to find transcripts exhibiting differential transcript usage (DTU) in groups of cells from a single-cell dataset. It requires two main data inputs:
+
+* An isoform-level counts table as a dataframe, with isoform names, gene names, and counts data.
+* A dataframe that specifies which group each cell belongs to.
+
+Provided these inputs, isopod first filters the counts table to exclude low count or sparsely represented genes. In addition, low-count isoform counts are collapsed (but not removed) into an artificial isoform on a per-gene basis, allowing us to remove from analysis isoforms resulting from noisy read assignment, while retaining their counts data for gene-level calculations required by other isoforms in the gene.
+
+The filtered dataset is then passed to a permutation analysis, which finds transcripts exhibiting DTU between the specified cell group against the rest of the dataset, in a one-vs-all fashion. If you want to compare two specific cell groups, or to run each cell group against the rest of the dataset automatically, check both the [get_permutation_pvals] section and the function documentation at `get_permutation_pvals()`.
+
+The final output from the pipeline is a list containing different dataframes, one of which is information on whether isoforms exhibit DTU in a cell group.
+
+
+# A quickstart guide to running isopod
+
+First install isopod from the development Github using:
+```{r, eval=FALSE}
+library(isopod)
+```
+
+
+# Functions in the pipeline
+
+## 1. filter_counts_table
+
+## 2. get_permutation_pvals
+
+
+# Further details
+
+### Permutation analysis
+
+For each permutation, isopod tests whether the proportion of each transcript within its gene changes significantly between the cell group and all other cell groups by creating a per-isoform contingency table. This contingency table is passed to a chi-squared calculation, and the resulting p-value is recorded and stored for later use. Between permutations, cells are shuffled randomly between all cell groups. Cell groups therefore retain their size but have randomly-allocated cells within. The final permutation p-value is a function of the number of permutations where the calculated p-value was equal to or more significant than the original chi-squared p-value. The more permutations that were as or more significant than the original, the less significant the p-value.
+
+
