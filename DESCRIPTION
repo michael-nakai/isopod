@@ -18,6 +18,7 @@ Imports:
     foreach,
     parallel,
     parallelly,
+    progress,
     data.table,
     doParallel,
     magrittr
