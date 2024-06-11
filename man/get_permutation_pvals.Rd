@@ -10,10 +10,14 @@ get_permutation_pvals(
   transcript_id_colname,
   gene_id_colname,
   cell_labels_colname,
+  analysis_group_1 = NA,
+  analysis_group_2 = NA,
+  run_on_all_groups = FALSE,
   permutations = 10000,
   cores = 0,
   do_gene_level_comparisons = FALSE,
   return_detailed_pvalue_tables = FALSE,
+  report_adjusted_pvalues = TRUE,
   cutoff = 0.1
 )
 }
@@ -30,13 +34,23 @@ that the cell ID belongs to.}
 
 \item{cell_labels_colname}{A string corresponding to the column name in \code{cell_labels_table} where the group information is stored.}
 
+\item{analysis_group_1}{This should be set if you want to compare one cell cluster directly against another, or against the rest of the dataset. Defaults to \code{NA}.
+Note that one of \code{analysis_group_1}, \code{analysis_group_2}, or \code{run_on_all_groups} needs to be set.}
+
+\item{analysis_group_2}{This should be set if you want to compare one cell cluster directly against another, or against the rest of the dataset. Defaults to \code{NA}.
+Note that one of \code{analysis_group_1}, \code{analysis_group_2}, or \code{run_on_all_groups} needs to be set.}
+
+\item{run_on_all_groups}{This should be set to \code{TRUE} if you want to compare every cluster against the rest of the dataset. Defaults to \code{FALSE}.
+Note that one of \code{analysis_group_1}, \code{analysis_group_2}, or \code{run_on_all_groups} needs to be set.}
+
 \item{permutations}{An integer corresponding to the number of permutations that should be run. Default 10000. Note that the first p-value calculation
 is performed on the original set of data, and label shuffling occurs from permutation 2 and onwards. If only 1 permmutation is chosen, the
 output p-values will be the chi-squared p-values.}
 
 \item{cores}{An integer representing the number of cores that the function should attempt to use. If left undefined, set to 0, or set
-to more cores than are available, defaults to all available cores. A good starting point is to allocate at least N cores, where
-N = (number of cell groupings * 2). The function will run at varying degrees of reduced speed if this threshold isn't met.}
+to more cores than are available, defaults to all available cores - 1. A good starting point is to allocate at least N cores, where
+\verb{N = (number of cell groupings * 2)} if \code{runall = TRUE}, or otherwise \verb{N = all available cores - 1}. The function will run at varying degrees
+of reduced speed if this threshold isn't met.}
 
 \item{do_gene_level_comparisons}{If set to \code{TRUE}, also runs a permutation analysis on gene level differences. A significant value indicates that
 there is a difference in transcript proportions visible at the gene level, but does not specify which transcripts show the change within the gene.}
@@ -46,24 +60,43 @@ p-values generated over the permutations. If you'd like to look into p-value dis
 Note that if this is set to \code{TRUE}, the resulting object generated will be very large (normally ~100GB), and therefore this option is only
 recommended for further (usually unnecessary) inspection.}
 
+\item{report_adjusted_pvalues}{If \code{TRUE}, p-values will be corrected via a Benjamini & Hochberg correction, and unadjusted p-values will
+be reported in a separate table.}
+
 \item{cutoff}{A \code{double} (decimal) indicating the initial p-value cutoff that isoforms (and genes if gene-level comparison is enabled) must pass to be included
 in subsequent permutations. This cutoff applies for the first permutation only, and potentially increases the speed of each permutation by filtering down
 data before calculations begin. With higher cutoffs, less data is filtered. To disable filtering, set the cutoff to 1. Defaults to \code{0.1}.}
 }
 \value{
-A \code{list} of four objects: the first is a list dataframes containing p-values for each permutation, for each group.
-The second is a list of dataframes that describe the values used in pvalue calculation for every transcript, for each group,
-only on the initial run (while tables were not permuted). The third is \code{NA} if \code{return_detailed_pvalue_tables}
-is set to \code{FALSE}, otherwise it contains additional information on the p-values for each permutation. The fifth is also \code{NA} if
-\code{do_gene_level_comparisons} is set to \code{FALSE}, but otherwise contains a dataframe with permutation p-values for gene level transcript
-proportion differences (see the description for do_gene_level_commparisons).
+A \code{list} containing:\n
+\itemize{
+\item \code{permutation_pvalues}: A dataframe of permutation p-values.\n
+\item \code{first-loop_pvalues}: A dataframe of the first-loop chi-squared p-values.\n
+\item \code{first-loop_contingency_tables}: A dataframe of first-loop contingency tables for each isoform.\n
+\item \code{first-loop_contingency_tables_gene}: A dataframe of first-loop contingency table values for each gene.\n
+\item \code{transcripts_filtered_from_cutoff}: A list of transcripts filtered due to the cutoff value.\n
+\item \code{genes_filtered_from_cutoff}: If \code{do_gene_level_comparisons = TRUE}, a list of genes filtered due to the cutoff value.\n
+\item \code{permutation_pvalues}: If \code{do_gene_level_comparisons = TRUE}, a dataframe of permutation p-values for each gene.\n
+\item \code{first-loop_pvalues_gene} : If \code{do_gene_level_comparisons = TRUE}, a dataframe of the first-loop chi-squared p-values for each gene. \n
+\item \code{odds_ratio_table}: If \code{do_gene_level_comparisons = TRUE}, the calculated odds-ratio for each isoform. Requires gene-level data to calculate.\n
+Note that the columns \code{other_in} and \code{other_out} are not used for gene-level calculations.\n
+\item \code{pvalue_storage_list}: If \code{return_detailed_pvalue_tables = TRUE}, a dataframe containing isoform-level p-values at each step of the permutation.\n
+\item \code{unadjusted_permutation_pvalues}: If \code{report_adjusted_pvalues = TRUE}, the unadjusted permutation p-values for each isoform.\n
+\item \code{unadjusted_first-loop_pvalues}: If \code{report_adjusted_pvalues = TRUE}, the unadjusted permutation p-values for each isoform.\n
+\item \code{unadjusted_permutation_pvalues_gene}: If \code{report_adjusted_pvalues = TRUE} and \code{do_gene_level_comparisons = TRUE}, the unadjusted permutation p-values for each gene.\n
+\item \code{unadjusted_first-loop_pvalues_gene}: If \code{report_adjusted_pvalues = TRUE} and \code{do_gene_level_comparisons = TRUE}, the first-loop chi-squared p-values for each gene.
+}
 }
 \description{
 Performs a permutation analysis using repeated chi-squared measures of significance, while shuffling cell grouping designations
-between each permutation. Should be run a minimum of 10,000 times to guarantee consistency in results.
+between each permutation.
 }
 \examples{
+# Note that transcript and gene IDs can be character strings instead of numbers.
 counts_table <- data.frame('transcript_id' = c(1, 2, 3), 'gene_id' = c(1, 1, 2), 'Cell_1' = c(0, 1, 10), 'Cell_2' = c(10, 2, 5), 'Cell_3' = c(2, 5, 1))
 labels_table <- data.frame('grouping' = c('Cluster_1', 'Cluster_2', 'Cluster 1'), 'Cells' = c('Cell_1', 'Cell_2', 'Cell_3'))
-permutation_results <- get_permutation_pvals(counts_table, labels_table, 'transcript_id', 'gene_id', 'grouping', 10000, 0, TRUE, FALSE, 6000, '/user/example/folder/')
+permutation_results <- get_permutation_pvals(counts_table, labels_table, 'transcript_id', 'gene_id', 'grouping',
+                                             run_on_all_groups = TRUE, permutations = 10000, cores = 0,
+                                             do_gene_level_comparisons = TRUE, return_detailed_pvalue_tables = FALSE,
+                                             report_adjusted_pvalues = TRUE, cutoff = 1)
 }

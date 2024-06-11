@@ -4,6 +4,7 @@
 #' between each permutation.
 #'
 #' @import data.table
+#' @import progress
 #' @importFrom magrittr %>%
 #' @importFrom foreach %dopar%
 #' @importFrom data.table %chin%
@@ -281,19 +282,13 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
     designations <- data.table::as.data.table(designations)
     meta <- data.table::as.data.table(meta)
 
+    pb <- progress::progress_bar$new(
+        format = "  Running permutation analysis [:bar] :current/:total (:percent), eta: :eta , elapsed: :elapsed",
+        total = permutations, clear = FALSE, width = 100)
+    pb$tick(0)
+
     # Main permutation loop
     for (loopnum in 1:permutations) {
-
-        message(paste('Loop number', loopnum))
-        time_s <- Sys.time()
-
-        # Estimating time left (time1 is first set during the first loop in the if (loopnum == 1) block further down)
-        if ((loopnum %% 100 == 0) & (loopnum != 1)) {
-            time2 <- Sys.time()
-            estimated_time <- round((as.numeric(difftime(time2, time1, units = 'mins')) / 100 * (permutations - loopnum)), 2)
-            message(paste0(Sys.time(), ' -- Estimated time to completion: ', estimated_time, ' minutes'))
-            time1 <- time2
-        }
 
         # If we're on cycle 2+, then scramble the grouping column in designations
         if (loopnum != 1) {
@@ -532,6 +527,8 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
             }
         }
 
+        pb$tick(1)
+
         # If this is the first loop, find the indices of the isoforms that have a p < cutoff, and add them to a vector here
         # For reference, this eliminates the majority of isoforms, speeding everything up
         # Split into two parts, depending on whether gene-level comparisons are being calculated or not
@@ -572,12 +569,11 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
                 }
             }
         }
-
-        # time_e <- Sys.time()
-        # message(paste0('Loop took ', time_e - time_s, ' seconds'))
     }
 
     parallel::stopCluster(cl)
+
+    cat('\nFinished permutations\n\nCalculating permutation p-values...')
 
     ### PVALUE CALCULATIONS
     # Find the p-values for each isoform that we keep, and store them in a list of vectors (per cluster)
@@ -609,7 +605,7 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
     # Calculate pvals, then make a vec of NAs and insert pvals into correct positions before appending to final table
     for (cluster in clusters) {
         tid_idx <- which(permutation_pvals$transcript_id %in% pvalue_storage_new[['2']][[cluster]][['transcript_id']])
-        final_pvals <- transcript_pval_count[[cluster]] / (permutations - 1)
+        final_pvals <- (transcript_pval_count[[cluster]] + 1) / permutations
         to_insert <- rep(NA, nrow(permutation_pvals))
         for (i in 1:length(tid_idx)) {
             to_insert[tid_idx[i]] <- final_pvals[i]
@@ -646,7 +642,7 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
         # Calculate pvals, then make a vec of NAs and insert pvals into correct positions before appending to final table
         for (cluster in clusters) {
             gid_idx <- which(permutation_pvals_gene$gene_id %in% pvalue_storage_gene$`2`[[clusters[1]]][['gene_id']])
-            final_pvals <- gene_pval_count[[cluster]] / (permutations - 1)
+            final_pvals <- (gene_pval_count[[cluster]] + 1) / (permutations)
             to_insert <- rep(NA, nrow(permutation_pvals_gene))
             for (i in 1:length(tid_idx)) {
                 to_insert[gid_idx[i]] <- final_pvals[i]
@@ -740,6 +736,8 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
             to_return[['unadjusted_first-loop_pvalues_gene']] <- initial_pvals_gene_noadjust
         }
     }
+
+    cat('Finished DTU permutation analysis')
 
     return(to_return)
 }

@@ -1,5 +1,5 @@
 ---
-title: "isopod - A tool for finding differential isoform usage in isoform-level single-cell datasets"
+title: "isopod"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{isopod}
@@ -14,31 +14,84 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
-library(diuPackage)
+```{r, include = FALSE}
+library(isopod)
 ```
+
+\
+\
 
 # Overview
 
 isopod is an R package that attempts to find transcripts exhibiting differential transcript usage (DTU) in groups of cells from a single-cell dataset. It requires two main data inputs:
 
-* An isoform-level counts table as a dataframe, with isoform names, gene names, and counts data.
-* A dataframe that specifies which group each cell belongs to.
+-   An isoform-level counts table as a dataframe, with isoform names, gene names, and counts data.
+-   A dataframe that specifies which group each cell belongs to.
 
 Provided these inputs, isopod first filters the counts table to exclude low count or sparsely represented genes. In addition, low-count isoform counts are collapsed (but not removed) into an artificial isoform on a per-gene basis, allowing us to remove from analysis isoforms resulting from noisy read assignment, while retaining their counts data for gene-level calculations required by other isoforms in the gene.
 
-The filtered dataset is then passed to a permutation analysis, which finds transcripts exhibiting DTU between the specified cell group against the rest of the dataset, in a one-vs-all fashion. If you want to compare two specific cell groups, or to run each cell group against the rest of the dataset automatically, check both the [get_permutation_pvals] section and the function documentation at `get_permutation_pvals()`.
+The filtered dataset is then passed to a permutation analysis, which finds transcripts exhibiting DTU between the specified cell group against the rest of the dataset, in a one-vs-all fashion. If you want to compare two specific cell groups, or to run each cell group against the rest of the dataset automatically, check both [2. get_permutation_pvals] and the function documentation at `get_permutation_pvals()`.
 
-The final output from the pipeline is a list containing different dataframes, one of which is information on whether isoforms exhibit DTU in a cell group.
+The final output from the pipeline is a list containing different dataframes, one of which is information on whether isoforms exhibit DTU in a cell group.\
 
+\
 
 # A quickstart guide to running isopod
 
-First install isopod from the development Github using:
-```{r, eval=FALSE}
+First install isopod from the development Github and load it using:
+
+```{r eval=FALSE}
+remotes::install_github('michael-nakai/isopod')
 library(isopod)
 ```
 
+To run isopod, we need two dataframes: an isoform-level counts table with isoform and gene names, and a dataframe that ties each cell to a cell group. As an example, the tables should look similar to these:
+
+```{r}
+counts_table <- data.frame('transcript_id' = c('transcript1', 'transcript2', 'transcript3', 'transcript4', 'transcript5'),
+                           'gene_id' = c('gene1', 'gene1', 'gene1', 'gene2', 'gene2'),
+                           'cell_1' = c(5, 2, 0, 10, 5),
+                           'cell_2' = c(5, 2, 0, 10, 5),
+                           'cell_3' = c(0, 2, 5, 5, 10),
+                           'cell_4' = c(0, 2, 5, 5, 10))
+cell_groups <- data.frame('cell_id' = c('cell_1', 'cell_2', 'cell_3', 'cell_4'),
+                          'cell_group' = c('group_1', 'group_1', 'group_2', 'group_2'))
+
+counts_table
+
+cell_groups
+```
+
+To quickly run the pipeline and get the results of the permutation analysis, we can run the following:
+
+```{r eval=FALSE}
+permutation_results <- run_everything(counts_table, 
+                                      cell_groups, 
+                                      transcript_id_colname = 'transcript_id', 
+                                      gene_id_colname = 'gene_id',
+                                      cell_labels_colname = 'cell_group', 
+                                      cell_group_to_analyse = 'group_1', 
+                                      output_folder = 'permutation_results')
+```
+
+The permutation analysis is computationally expensive, and may take some time depending on the size of your dataset and the computational power availble to you. Luckily, it's also multithreaded, and will try to use all available cores (except for one) on your computer or cluster to speed up the permutations. This means that it can take anywhere from 5 minutes (for a small dataset) to a few hours (for a large dataset with moderate compute power). For larger datasets with over 80,000 isoforms, we recommend having a nice dinner while isopod runs.
+
+`run_everything()` creates a few files containing the permuttion results in the output folder. These files can be read back into R with `readRDS()`, and are:
+
+-   `filtered_counts_table.rds` - A list containing the counts table after the filtering step, and a list of collapsed isoforms for each gene. See [filter_counts_table].
+-   `permutation_results.rds` - A list of all results from the DTU permutation analysis.
+
+The permutation results object contains a few items. The main outputs are:
+
+-   `permutation_pvalues` - The isoform-level permutation *p*-values for the group specified. Isoforms exhibiting DTU between the group and all other cells will be significant.
+
+-   `permutation_pvalues_gene` - The gene-level permutation *p*-values for the group. This tests whether any change between the group and all other groups can be seen for each gene. Put simply, this tests whether any isoform proportions are significantly changing within the gene, between the specified group and all other cells.
+
+-   `unadjusted_permutation_pvalues` and `unadjusted_permutation_pvalues_gene`, which contain the raw *p*-values at the isoform and gene-level
+
+-   `genes_filtered_from_cutoff` - A list of genes filtered during the permutation analysis. See [2. get_permutation_pvals] and [Permutation analysis] for more information on the cutoff.
+
+You're probably looking for `permutation_pvalues` and `permutation_pvalues_gene`, which gives you the permutation *p*-values at the isoform and gene-level. These *p*-values have been corrected using the Benjamini-Hochberg adjustment method. If you'd like raw *p*-values instead to correct at your leisure, look at `unadjusted_permutation_pvalues` and `unadjusted_permutation_pvalues_gene` instead.
 
 # Functions in the pipeline
 
@@ -46,11 +99,8 @@ library(isopod)
 
 ## 2. get_permutation_pvals
 
-
 # Further details
 
 ### Permutation analysis
 
 For each permutation, isopod tests whether the proportion of each transcript within its gene changes significantly between the cell group and all other cell groups by creating a per-isoform contingency table. This contingency table is passed to a chi-squared calculation, and the resulting p-value is recorded and stored for later use. Between permutations, cells are shuffled randomly between all cell groups. Cell groups therefore retain their size but have randomly-allocated cells within. The final permutation p-value is a function of the number of permutations where the calculated p-value was equal to or more significant than the original chi-squared p-value. The more permutations that were as or more significant than the original, the less significant the p-value.
-
-

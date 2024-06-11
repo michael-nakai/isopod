@@ -8,7 +8,6 @@ filter_counts_table(
   transcript_counts_table,
   transcript_id_colname,
   gene_id_colname,
-  filter_genes_with_one_transcript = TRUE,
   gene_count_threshold = 0,
   autofiltering = TRUE,
   cell_labels_table = NA,
@@ -25,8 +24,6 @@ each transcript, and counts for all transcripts in all cells, with cell IDs as s
 
 \item{gene_id_colname}{A string corresponding to the column name in transcript_counts_table where the gene IDs are stored.}
 
-\item{filter_genes_with_one_transcript}{A boolean defining whether genes with one associated transcript should be removed. Defaults to \code{TRUE}.}
-
 \item{gene_count_threshold}{An integer. If the total counts for all transcripts in a gene is below this number, the transcripts will be filtered
 out of the table. Defaults to 0, which disables this filtering step.}
 
@@ -41,8 +38,8 @@ when \code{cell_labels_table} is provided. Defaults to NA.}
 
 \item{collapse_isoforms_with_counts_below}{An integer. If set to an integer higher than 1, isoforms within a gene that have n total counts or less will
 be collapsed together at a per-cell basis. This collapsing step is useful for reducing significant isoforms with very low counts, which may be biologically
-insignificant. This also may help reduce the number of p-value calculations in the permutation step, reducing computational load. Defaults to 0, which
-disables this feature.}
+insignificant. This also may help reduce the number of p-value calculations in the permutation step, reducing computational load. Defaults to 6. Setting this
+to 0 disables the feature.}
 
 \item{autofilter_threshold}{A float between 0 - 1, representing the fraction of the smallest cell group needed to pass the autofiltering step.}
 }

@@ -10,37 +10,45 @@ run_everything(
   transcript_id_colname,
   gene_id_colname,
   cell_labels_colname,
-  filter_genes_with_one_transcript = TRUE,
-  transcript_count_threshold = 0,
-  gene_count_threshold = 0,
+  cell_group_to_analyse,
+  output_folder,
+  gene_count_threshold = 20,
+  gene_appearence_in_cell_filtering = FALSE,
+  collapse_isoforms_with_counts_below = 6,
   permutations = 10000,
   cores = 0,
-  get_detailed_pvalue_output = FALSE,
-  do_gene_level_comparisons = FALSE,
-  save_plots = FALSE
+  do_gene_level_comparisons = TRUE
 )
 }
 \arguments{
 \item{transcript_counts_table}{A dataframe with a column containing transcript IDs, a column with gene IDs for
-each transcript, and counts for all transcripts in all cells, with cell IDs as subsequent column names.}
+each transcript, and all other columns containing counts for all transcripts in all cells. Cell IDs should be
+the column names for all columns containing these counts.}
 
-\item{cell_labels_table}{A dataframe with two columns: one listing all cell IDs, and the other listing the group
-that the cell ID belongs to.}
+\item{cell_labels_table}{A dataframe with two columns: one with all cell IDs, and the other with the group
+that each cell ID belongs to.}
 
-\item{transcript_id_colname}{A string corresponding to the column name in transcript_counts_table where the transcript IDs are stored.}
+\item{transcript_id_colname}{A string corresponding to the column name in \code{transcript_counts_table} where the transcript IDs are stored.}
 
-\item{gene_id_colname}{A string corresponding to the column name in transcript_counts_table where the gene IDs are stored.}
+\item{gene_id_colname}{A string corresponding to the column name in \code{transcript_counts_table} where the gene IDs are stored.}
 
-\item{cell_labels_colname}{A string corresponding to the column name in cell_labels_table where the group information is stored.}
+\item{cell_labels_colname}{A string corresponding to the column name in \code{cell_labels_table} where the group information is stored.}
 
-\item{filter_genes_with_one_transcript}{A boolean defining whether genes with one associated transcript should be removed. Defaults to TRUE.}
+\item{cell_group_to_analyse}{A string corresponding to the cell group to compare against the rest of the dataset. This should be a cell group
+in \code{cell_labels_table}.}
 
-\item{transcript_count_threshold}{An integer. If the total counts for a transcript is below this number, the transcript will
-be filtered out of the table. Defaults to 0, which disables this filtering step. Note that this happens before filtering genes with
-one transcript, so any genes that contain one transcript after count filtering will also be filtered.}
+\item{output_folder}{A filepath to an output folder where data will be saved. If the folder doesn't exist, Isopod will attempt to create it.}
 
 \item{gene_count_threshold}{An integer. If the total counts for all transcripts in a gene is below this number, the transcripts will be filtered
-out of the table. Defaults to 0, which disables this filtering step.}
+out of the table. Defaults to \code{20}.}
+
+\item{gene_appearence_in_cell_filtering}{A boolean. If \code{TRUE}, removes genes where at least N cells per group do not contain counts for the gene, where N is half the cell
+count of the smallest group. Defaults to \code{FALSE}.}
+
+\item{collapse_isoforms_with_counts_below}{An integer. If set to an integer higher than 1, isoforms within a gene that have n total counts or less will
+be collapsed together at a per-cell basis. This collapsing step is useful for reducing significant isoforms with very low counts, which may be biologically
+insignificant. This also may help reduce the number of p-value calculations in the permutation step, reducing computational load. Defaults to 6. Setting this
+to 0 disables the feature.}
 
 \item{permutations}{An integer corresponding to the number of permutations that should be run. Default 10000. Note that the first p-value calculation
 is performed on the original set of data, and label shuffling occurs from permutation 2 and onwards.}
@@ -48,25 +56,24 @@ is performed on the original set of data, and label shuffling occurs from permut
 \item{cores}{An integer representing the number of cores that the function should attempt to use. If left undefined, set to 0, or set
 to more cores than are available, defaults to all available cores.}
 
-\item{get_detailed_pvalue_output}{A boolean, defaults to \code{FALSE}. If \code{TRUE}, keeps and returns extra p-value information needed to look at
-permuted p-value distribution for any given transcripts. Note that this may take up very large amounts (>60GB) of RAM, and is therefore
-only recommended on cluster computing systems with large amounts of available RAM.}
-
-\item{do_gene_level_comparisons}{A boolean, defaults to \code{FALSE}. If \code{TRUE}, also runs a permutation analysis on gene level differences.
+\item{do_gene_level_comparisons}{A boolean. If \code{TRUE}, also runs a permutation analysis on gene level differences.
 A significant value indicates that there is a difference in transcript proportions visible at the gene level, but does not specify
-which transcripts show the change within the gene.}
-
-\item{save_plots}{If set to a filepath to a directory, resulting DIU plots will be saved to the directory. Default \code{NA}.}
+which transcripts show the change within the gene. Enabling this also allows for other automatic calculations such
+as odds-ratio calculations. Defaults to \code{TRUE}.}
 }
 \value{
-A list containing the filtered counts table object, proportions tables, a permutation pvalue object, and the resulting DIU plots.
+The output of \code{get_permutation_pvals()}.
 }
 \description{
 Runs all functions needed to analyse differential isoform usage, and returns outputs in a list.
-In order: (1) \code{filter_counts_table()}, (2) \code{generate_prop_tables()}, (3) \code{get_permutation_pvals()}, and (4) \code{make_plots}.
+In order: (1) \code{filter_counts_table()} and (2) \code{get_permutation_pvals()}.
+For ease of use, available options are reduced when running the functions here. For more detailed
+usage and for more low-level control, run each function separately. In additon, the permutation step
+runs all groups against the rest of the dataset. For comparing two specific groups, or to compare a
+single group against the rest of the dataset, run \code{get_permutation_pvals()} separately.
 }
 \examples{
 counts_table <- data.frame('transcript_id' = c(1, 2, 3), 'gene_id' = c(1, 1, 2), 'Cell_1' = c(0, 1, 10), 'Cell_2' = c(10, 2, 5), 'Cell_3' = c(2, 5, 1))
 labels_table <- data.frame('grouping' = c('Cluster_1', 'Cluster_2', 'Cluster 1'), 'Cells' = c('Cell_1', 'Cell_2', 'Cell_3'))
-results <- run_everything(counts_table, labels_table, 'transcript_id', 'gene_id', 'grouping')
+results <- run_everything(counts_table, labels_table, 'transcript_id', 'gene_id', 'grouping', output_folder = 'output_folder')
 }

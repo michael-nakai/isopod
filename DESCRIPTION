@@ -1,10 +1,12 @@
 Package: isopod
 Title: What the Package Does (One Line, Title Case)
-Version: 0.1
+Version: 0.2
 Authors@R: 
     person("Michael", "Nakai", , "michael.nakai@petermac.org", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-6400-8007"))
 Description: What the package does (one paragraph).
+URL: https://github.com/michael-nakai/isopod
+BugReports: https://github.com/michael-nakai/isopod/issues
 License: `use_gpl3_license()`
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
