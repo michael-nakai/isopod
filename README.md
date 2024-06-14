@@ -209,7 +209,7 @@ below.
 3.  All groups against the rest of the dataset
 
 <center>
-<img src="Runmodes.png" width="600" />
+<img src="vignettes/Runmodes.png width="600" />
 </center>
 
 We generally recommend running the cell group of interest against either
