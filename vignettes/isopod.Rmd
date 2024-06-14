@@ -86,9 +86,9 @@ The permutation analysis is computationally expensive, and may take some time de
 
 ## Outputs
 
-`run_everything()` creates a few files containing the permuttion results in the output folder. These files can be read back into R with `readRDS()`, and are:
+`run_everything()` creates a few files containing the permutation results in the output folder. These files can be read back into R with `readRDS()`, and are:
 
--   `filtered_counts_table.rds` - A list containing the counts table after the filtering step, and a list of collapsed isoforms for each gene. See [filter_counts_table].
+-   `filtered_counts_table.rds` - A list containing the counts table after the filtering step, and a list of collapsed isoforms for each gene. See [1. filter_counts_table].
 -   `permutation_results.rds` - A list of all results from the DTU permutation analysis.
 
 The permutation results object contains a few items. The main outputs are:
@@ -97,9 +97,9 @@ The permutation results object contains a few items. The main outputs are:
 
 -   `permutation_pvalues_gene` - The gene-level permutation *p*-values for the group. This tests whether any change between the group and all other groups can be seen for each gene. Put simply, this tests whether any isoform proportions are significantly changing within the gene, between the specified group and all other cells.
 
--   `unadjusted_permutation_pvalues` and `unadjusted_permutation_pvalues_gene`, which contain the raw *p*-values at the isoform and gene-level
+-   `unadjusted_permutation_pvalues` and `unadjusted_permutation_pvalues_gene`, which contain the raw *p*-values at the isoform and gene-level.
 
--   `genes_filtered_from_cutoff` - A list of genes filtered during the permutation analysis. See [2. get_permutation_pvals] and [Permutation analysis] for more information on the cutoff.
+-   `genes_filtered_from_cutoff` - A list of genes filtered during the permutation analysis. See [Permutation analysis] for more information on the cutoff.
 
 You're probably looking for `permutation_pvalues` and `permutation_pvalues_gene`, which gives you the permutation *p*-values at the isoform and gene-level. These *p*-values have been corrected using the Benjamini-Hochberg adjustment method. If you'd like raw *p*-values instead to correct at your leisure, look at `unadjusted_permutation_pvalues` and `unadjusted_permutation_pvalues_gene` instead.
 
@@ -181,6 +181,8 @@ The permutation function also has some other options, which are explained below:
 
 # Method Details
 
+Further details on the permutation analysis are provided below.
+
 <br>
 
 ### Permutation analysis
@@ -193,3 +195,7 @@ By default, a *p*-value cutoff is applied to the first permutation. What this me
 2.  Isoforms with a first-loop chi-squared *p*-value equal to or above this cutoff will be ignored in subsequent permutations. Their counts will remain to accurately calculate pseudo-bulked contingency tables for other isoforms in the gene, but permutations wil not be calculated for them.
 
 This filtering of the isoforms and genes passed to subsequent permutations after the first loop serves to reduce unnecessary calculations, and often greatly speeds up permutations without sacrificing DTU detections. Nevertheless, the cutoff can be disabled through the argument `cutoff = 1` if required.
+
+<br>
+
+<br>
