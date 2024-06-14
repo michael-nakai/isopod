@@ -52,7 +52,7 @@ To run isopod, we need two dataframes:
 - An isoform-level counts table with isoform and gene names
 - A dataframe that ties each cell to a cell group.
 
-As an example, the tables should look similar to these:
+Here’s an example of what the tables might look like:
 
 ``` r
 counts_table <- data.frame('transcript_id' = c('transcript1', 'transcript2', 'transcript3', 'transcript4', 'transcript5'),
