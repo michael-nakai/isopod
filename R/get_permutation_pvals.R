@@ -30,6 +30,7 @@
 #' of reduced speed if this threshold isn't met.
 #' @param do_gene_level_comparisons If set to `TRUE`, also runs a permutation analysis on gene level differences. A significant value indicates that
 #' there is a difference in transcript proportions visible at the gene level, but does not specify which transcripts show the change within the gene.
+#' Defaults to `TRUE`. Also adds an additional step to the cutoff filtering (for more detail, see the isopod vignette).
 #' @param return_detailed_pvalue_tables If set to `TRUE`, an additonal list of dataframes will be returned containing additional information on
 #' p-values generated over the permutations. If you'd like to look into p-value distributions over the permutations, this must be set to `TRUE`.
 #' Note that if this is set to `TRUE`, the resulting object generated will be very large (normally ~100GB), and therefore this option is only
@@ -71,7 +72,7 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
                                   cell_labels_colname,
                                   analysis_group_1 = NA, analysis_group_2 = NA,
                                   run_on_all_groups = FALSE, permutations = 10000,
-                                  cores = 0, do_gene_level_comparisons = FALSE,
+                                  cores = 0, do_gene_level_comparisons = TRUE,
                                   return_detailed_pvalue_tables = FALSE, report_adjusted_pvalues = TRUE,
                                   cutoff = 0.1) {
 

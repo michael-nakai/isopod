@@ -4,3 +4,4 @@ inst/doc
 .Rhistory
 ..Rcheck
 *.Rproj
+make_readme.bash
