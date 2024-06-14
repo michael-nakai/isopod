@@ -91,6 +91,8 @@ The permutation analysis is computationally expensive, and may take some time de
 -   `filtered_counts_table.rds` - A list containing the counts table after the filtering step, and a list of collapsed isoforms for each gene. See [1. filter_counts_table].
 -   `permutation_results.rds` - A list of all results from the DTU permutation analysis.
 
+<br>
+
 The permutation results object contains a few items. The main outputs are:
 
 -   `permutation_pvalues` - The isoform-level permutation *p*-values for the group specified. Isoforms exhibiting DTU between the group and all other cells will be significant.

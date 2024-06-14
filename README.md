@@ -114,6 +114,8 @@ results in the output folder. These files can be read back into R with
 - `permutation_results.rds` - A list of all results from the DTU
   permutation analysis.
 
+<br>
+
 The permutation results object contains a few items. The main outputs
 are:
 
