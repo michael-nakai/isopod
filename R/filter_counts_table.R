@@ -8,7 +8,7 @@
 #' @param transcript_id_colname A string corresponding to the column name in transcript_counts_table where the transcript IDs are stored.
 #' @param gene_id_colname A string corresponding to the column name in transcript_counts_table where the gene IDs are stored.
 #' @param gene_count_threshold An integer. If the total counts for all transcripts in a gene is below this number, the transcripts will be filtered
-#' out of the table. Defaults to 0, which disables this filtering step.
+#' out of the table. Defaults to 20. 0 disables this step.
 #' @param autofiltering A boolean. If `TRUE`, removes genes where at least N cells per group do not contain counts for the gene, where N is half the cell
 #' count of the smallest group. Defaults to `TRUE`.
 #' @param cell_labels_table A dataframe with two columns: one listing all cell IDs, and the other listing the group that the cell ID belongs to. Only is
@@ -28,7 +28,7 @@
 
 filter_counts_table <- function(transcript_counts_table,
                                 transcript_id_colname, gene_id_colname,
-                                gene_count_threshold = 0,
+                                gene_count_threshold = 20,
                                 autofiltering = TRUE,
                                 cell_labels_table = NA,
                                 cell_labels_colname = NA,
