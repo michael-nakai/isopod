@@ -187,6 +187,16 @@ Further details on the permutation analysis are provided below.
 
 <br>
 
+### Filtering the counts table
+
+The filtering step will always apply the filtering conditions in the following order:
+
+1.  Genes with one associated transcript are removed (always enabled).
+2.  Genes without sufficient appearances across cells are removed.
+3.  Transcripts with low counts are aggregated into a collapsed isoform.
+
+<br>
+
 ### Permutation analysis
 
 For each permutation, isopod tests whether the proportion of each transcript within its gene changes significantly between the cell group and all other cell groups by creating a per-isoform contingency table. This contingency table is passed to a chi-squared calculation, and the resulting p-value is recorded and stored for later use. Between permutations, cells are shuffled randomly between all cell groups. Cell groups therefore retain their size but have randomly-allocated cells within. The final permutation p-value is a function of the number of permutations where the calculated p-value was equal to or more significant than the original chi-squared p-value. The more permutations that were as or more significant than the original, the less significant the p-value.

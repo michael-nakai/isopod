@@ -300,6 +300,17 @@ Further details on the permutation analysis are provided below.
 
 <br>
 
+### Filtering the counts table
+
+The filtering step will always apply the filtering conditions in the
+following order:
+
+1.  Genes with one associated transcript are removed (always enabled).
+2.  Genes without sufficient appearances across cells are removed.
+3.  Transcripts with low counts are aggregated into a collapsed isoform.
+
+<br>
+
 ### Permutation analysis
 
 For each permutation, isopod tests whether the proportion of each
