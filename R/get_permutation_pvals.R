@@ -364,8 +364,9 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
 
         # See if any genes are kept here
         if (loopnum == 2) {
-            if (identical(list_of_genes_to_keep[[clusters]], character(0))) {
-                stop(paste0('No genes passed the first-loop chi-squared cutoff of ', cutoff,'\n',
+            templistresult <- lapply(list_of_genes_to_keep, function(x) {identical(x, character(0))})
+            if (TRUE %in% templistresult) {
+                stop(paste0('No genes passed the first-loop chi-squared cutoff of ', cutoff, '\n',
                             'We recommend setting the cutoff argument to cutoff=1, then rerunning this.'))
             }
         }
