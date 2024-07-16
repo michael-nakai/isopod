@@ -574,7 +574,7 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
 
     parallel::stopCluster(cl)
 
-    cat('\nFinished permutations\n\nCalculating permutation p-values...')
+    cat('\nFinished permutations\n\nCalculating permutation p-values...\n')
 
     ### PVALUE CALCULATIONS
     # Find the p-values for each isoform that we keep, and store them in a list of vectors (per cluster)
@@ -687,26 +687,17 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
         ortab_gene <- NA
     }
 
-    # Replace NAs with p=1 here, and keep a list of transcript_ids and gene_ids kept
-    # If report_adjusted_pvalues, then adjust them here and keep a copy of the raw pval tables.
-    # FDR-adjust p-values here if adjust is true
-    if (report_adjusted_pvalues) {
-        permutation_pvals_noadjust <- permutation_pvals
-        permutation_pvals_gene_noadjust <- permutation_pvals_gene
-        initial_pvals_noadjust <- initial_pvals_table
-        initial_pvals_gene_noadjust <- initial_pvals_table_gene
-    }
-
     transcripts_filtered_from_cutoff <- list()
     genes_filtered_from_cutoff <- list()
     for (cluster in clusters) {
         transcripts_filtered_from_cutoff[[cluster]] <- permutation_pvals$transcript_id[is.na(permutation_pvals[[cluster]])]
-        permutation_pvals[[cluster]] <- ifelse(is.na(permutation_pvals[[cluster]]), 1, permutation_pvals[[cluster]])
-        genes_filtered_from_cutoff[[cluster]] <- permutation_pvals_gene$gene_id[is.na(permutation_pvals[[cluster]])]
 
         if (do_gene_level_comparisons) {
-            permutation_pvals_gene[[cluster]] <- ifelse(is.na(permutation_pvals_gene[[cluster]]), 1, permutation_pvals[[cluster]])
+            genes_filtered_from_cutoff[[cluster]] <- permutation_pvals_gene$gene_id[is.na(permutation_pvals_gene[[cluster]])]
+            permutation_pvals_gene[[cluster]] <- ifelse(is.na(permutation_pvals_gene[[cluster]]), 1, permutation_pvals_gene[[cluster]])
         }
+
+        permutation_pvals[[cluster]] <- ifelse(is.na(permutation_pvals[[cluster]]), 1, permutation_pvals[[cluster]])
 
         if (report_adjusted_pvalues) {
             permutation_pvals[[cluster]] <- p.adjust(permutation_pvals[[cluster]], method = 'fdr')
@@ -717,6 +708,16 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
                 initial_pvals_table_gene[[cluster]] <- p.adjust(initial_pvals_table_gene[[cluster]], method = 'fdr')
             }
         }
+    }
+
+    # Replace NAs with p=1 here, and keep a list of transcript_ids and gene_ids kept
+    # If report_adjusted_pvalues, then adjust them here and keep a copy of the raw pval tables.
+    # FDR-adjust p-values here if adjust is true
+    if (report_adjusted_pvalues) {
+        permutation_pvals_noadjust <- permutation_pvals
+        permutation_pvals_gene_noadjust <- permutation_pvals_gene
+        initial_pvals_noadjust <- initial_pvals_table
+        initial_pvals_gene_noadjust <- initial_pvals_table_gene
     }
 
     to_return <- list('permutation_pvalues' = permutation_pvals, 'first-loop_pvalues' = initial_pvals_table,

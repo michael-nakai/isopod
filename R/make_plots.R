@@ -8,28 +8,33 @@
 #' @param save_plots Default NA. If specified, the path to the directory that plots should be saved in.
 #' @param save_tables Default NA. If specified, the path to the directory that the tables used to make the plots
 #' should be saved in. Useful if you'd like to recreate the plots yourself or in another program.
-#' @return A list of ggplot objects, each corresponding to a plot for a cell grouping.
+#' @return A list containing two further lists. The first is a list of ggplot objects, each corresponding to a plot for a cell grouping.
+#' The second contains the
 #' @export
 
 make_plots <- function(proportions_tables, pvalue_object, transcript_id_colname, save_plots = NA, save_tables = NA) {
 
     plot_list <- list()
     table_list <- list()
-    for (n in names(proportions_tables)) {
-
+    groups_assessed <- colnames(pvalue_object$permutation_pvalues)
+    groups_assessed <- groups_assessed[3:length(groups_assessed)]
+    for (n in groups_assessed) {
         contingency_lists <- pvalue_object[['first-loop_contingency_tables']]
         pvalue_table <- pvalue_object[['permutation_pvalues']]
         pval_to_merge <- pvalue_table %>% dplyr::select({{transcript_id_colname}})
         pval_to_merge <- cbind(pval_to_merge, pvalue_table[[n]])
         colnames(pval_to_merge) <- c(transcript_id_colname, 'permutation_pval')
-        contingency_to_merge <- contingency_lists[[n]] %>% dplyr::select({{transcript_id_colname}}, nt, rt, ng, rg)
+        contingency_to_merge <- contingency_lists[[n]] %>% dplyr::select({{transcript_id_colname}}, isoform_in, isoform_out, other_in, other_out)
 
         temp_df <- merge(proportions_tables[[n]], pval_to_merge, by = transcript_id_colname)
-        temp_df <- merge(temp_df, pvalue_object$`first-loop_pvalues`[[n]], by = transcript_id_colname)
-        contingency_to_merge <- merge(temp_df, conteingency_to_merge, by = transcript_id_colname)
+        moretemp <-  pvalue_object$`first-loop_pvalues`
+        moretemp <- moretemp[ order(match(moretemp$transcript_id, temp_df$transcript_id)), ]
+        temp_df$firstloop_pval <- moretemp[[n]]
+        contingency_to_merge <- merge(temp_df, contingency_to_merge, by = transcript_id_colname)
+        temp_df <- contingency_to_merge
 
         # Remove any isoforms with nt == 0 & rt == 0
-        temp_df <- temp_df[which((temp_df$nt > 0) | (temp_df$rt > 0)), ]
+        temp_df <- temp_df[which((temp_df$isoform_in > 0) | (temp_df$isoform_out > 0)), ]
 
         # Calculate pval_sig
         pval_sig <- rep(NA, nrow(temp_df))

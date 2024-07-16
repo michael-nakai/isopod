@@ -45,8 +45,8 @@
 run_everything <- function(transcript_counts_table, cell_labels_table,
                            transcript_id_colname, gene_id_colname,
                            cell_labels_colname, cell_group_to_analyse, output_folder,
-                           gene_count_threshold = 20, gene_appearence_in_cell_filtering = FALSE,
-                           collapse_isoforms_with_counts_below = 6, permutations = 10000, cores = 0,
+                           gene_count_threshold = 20, collapse_isoforms_with_counts_below = 6,
+                           permutations = 10000, cores = 0,
                            do_gene_level_comparisons = TRUE) {
 
 
@@ -64,7 +64,9 @@ run_everything <- function(transcript_counts_table, cell_labels_table,
     cat('------------------------------------------\n\n')
     cat('1. Filtering...\n')
     filtered_counts_table <- filter_counts_table(transcript_counts_table, transcript_id_colname, gene_id_colname,
-                                                 filter_genes_with_one_transcript, gene_count_threshold)
+                                                 gene_count_threshold, autofiltering = F,
+                                                 cell_labels_table = cell_labels_table, cell_labels_colname = cell_labels_colname,
+                                                 collapse_isoforms_with_counts_below = collapse_isoforms_with_counts_below)
 
     cat('2. Saving filtered counts table to', output_folder, '\n')
     if (collapse_isoforms_with_counts_below != 0) {
