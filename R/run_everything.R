@@ -80,7 +80,7 @@ run_everything <- function(transcript_counts_table, cell_labels_table,
     cat('     Starting permutation analysis...\n')
     cat('------------------------------------------\n\n')
     cat('1. Running the permutation analysis using', permutations, 'permutations...\n')
-    permutation_pval_object <- get_permutation_pvals(filtered_counts_table$counts_table,
+    permutation_pval_object <- get_permutation_pvals(filtered_counts_table,
                                                      cell_labels_table,
                                                      transcript_id_colname,
                                                      gene_id_colname,
