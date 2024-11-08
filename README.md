@@ -5,20 +5,30 @@ isopod
 
 # Overview
 
-isopod is an R package that attempts to find transcripts exhibiting
-differential transcript usage (DTU) in groups of cells from a
-single-cell dataset. It requires two main data inputs:
+isopod is an R package with two distinct purposes centered around
+long-read single-cell data:
+
+1.  Simulation of long-read single-cell datasets with
+    gene/transcript-level diifferential transcript usage (DTU) at the
+    counts table level.
+
+2.  Identification of genes and transcripts exhibiting statistically
+    significant DTU in real long-read single-cell datasets.
+
+Isopod’s DTU detection requires two main inputs, while isopod’s
+simulation component creates these as outputs:
 
 - An isoform-level counts table as a dataframe, with isoform names, gene
   names, and counts data.
 - A dataframe that specifies which group each cell belongs to.
 
-Provided these inputs, isopod first filters the counts table to exclude
-low count or sparsely represented genes. In addition, low-count isoform
-counts are collapsed (but not removed) into an artificial isoform on a
-per-gene basis, allowing us to remove from analysis isoforms resulting
-from noisy read assignment, while retaining their counts data for
-gene-level calculations required by other isoforms in the gene.
+When performing DTU analysis, provided these inputs, isopod first
+filters the counts table to exclude low count or sparsely represented
+genes. In addition, low-count isoform counts are collapsed (but not
+removed) into an artificial isoform on a per-gene basis, allowing us to
+remove from analysis isoforms resulting from noisy read assignment,
+while retaining their counts data for gene-level calculations required
+by other isoforms in the gene.
 
 The filtered dataset is then passed to a permutation analysis, which
 finds transcripts exhibiting DTU between the specified cell group
@@ -34,11 +44,42 @@ in a cell group.
 
 <br>
 
+Isopod’s simulation component instead works to simulate the counts table
+and cell group assignments given certain parameters by the user, such as
+the gamma distribution parameter to draw mean gene counts from or the
+number of cell groups. Users are able to control multiple generation
+parameters, including:
+
+- The number of genes, transcripts, cell groups and their sizes
+
+- Gamma distribution parameters to draw average gene counts from
+
+- Distribution of transcripts among genes
+
+- Proportion of genes to exhibit DTU, along with which transcripts
+  should show DTU
+
+- Proportion of genes to exhibit DGE, along with the magnitude of DGE
+
+- Proportion of cells and genes to exhibit outlier counts, along with
+  the outlier magnitude
+
+- Counts generation from either a Poisson or negative binomial
+  distribution.
+
+Isopod then uses these parameters to create a simulated dataset,
+outputting a list that contains the main output tables. The list also
+keeps information on all input parameters, DTU/DGE/outlier genes, and
+other generation details for posterity, allowing for easier
+reconstruction of similar datasets.
+
+<br>
+
 ------------------------------------------------------------------------
 
 <br>
 
-# A quickstart guide to running isopod
+# Running isopod’s DTU detection on a dataset
 
 First install isopod from the development Github and load it using:
 
@@ -151,7 +192,7 @@ using the Benjamini-Hochberg adjustment method. If you’d like raw
 
 <br>
 
-# Running individual functions
+# Running individual functions for DTU detection
 
 Running each function lets you access additional options for each, such
 as running **all** groups at once instead of one at a time. Each
@@ -306,8 +347,9 @@ The filtering step will always apply the filtering conditions in the
 following order:
 
 1.  Genes with one associated transcript are removed (always enabled).
-2.  Genes without sufficient appearances across cells are removed.
-3.  Transcripts with low counts are aggregated into a collapsed isoform.
+2.  Genes below the gene count threshold are removed.
+3.  Genes without sufficient appearances across cells are removed.
+4.  Transcripts with low counts are aggregated into a collapsed isoform.
 
 <br>
 

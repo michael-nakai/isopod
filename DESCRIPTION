@@ -21,7 +21,9 @@ Imports:
     progress,
     data.table,
     doParallel,
-    magrittr
+    magrittr,
+    progress,
+    checkmate
 Suggests:
     knitr,
     rmarkdown,
