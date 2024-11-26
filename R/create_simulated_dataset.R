@@ -58,11 +58,11 @@ create_simulated_dataset <- function(dataset_name,
     # 4. isoform_number_distribution dataframe correctly formatted? Adds up to 1? Illegal numbers not included in isospergene?
     correct_df_explanation <- paste0('This should be a dataframe with two columns:\n',
                                      '\t"isoforms_in_gene": The number of different isoforms in the gene.\n',
-                                     '\t"proportion": The proportion of genes containing this number of isoforms. Proportions should add up to 1.\n',)
+                                     '\t"proportion": The proportion of genes containing this number of isoforms. Proportions should add up to 1.\n')
     if (ncol(isoform_number_distribution) != 2) {
         stop(paste0('The isoform_number_distribution dataframe has more than 2 columns. ', correct_df_explanation))
     }
-    if (!(sort(colnames(isoform_number_distribution)) == c('isoforms_in_gene', 'proportion'))) {
+    if (!sum(sort(colnames(isoform_number_distribution)) == c('isoforms_in_gene', 'proportion')) == 2) {
         stop(paste0('The column names provided in the isoform_number_distribution dataframe are incorrect. ', correct_df_explanation))
     }
     if (!(is.numeric(isoform_number_distribution$isoforms_in_gene))) {
@@ -94,9 +94,9 @@ create_simulated_dataset <- function(dataset_name,
     if (proportion_of_genes_with_DTU != 0) {
 
         # Repeat swaps for each group
-        for (i in 1:length(cells_in_groups)) {
+        for (i in 2:length(cells_in_groups)) {
 
-            group_name <- paste0('group_', i + 1)
+            group_name <- paste0('group_', i)
             sciso_object <- sim_random_swap_means(sciso_object,
                                                   group_name,
                                                   proportion_to_swap = proportion_of_genes_with_DTU,

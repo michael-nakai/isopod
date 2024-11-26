@@ -24,7 +24,7 @@
 #' `collapse_isoforms_with_counts_below` is greater than 0. The list of collapsed isoforms is of the form gene_id --> vector of collapsed isoform IDs.
 #' If the gene itself was filtered due to all isoforms being collapsed (i.e. if all isoforms in a gene didn't reach the threshold), the gene_id will return
 #' a character string explaining that all isoforms associated with the gene was removed.
-
+#' @export
 
 filter_counts_table <- function(transcript_counts_table,
                                 transcript_id_colname, gene_id_colname,
@@ -45,6 +45,11 @@ filter_counts_table <- function(transcript_counts_table,
         stop("Your transcript_counts_table is an empty dataframe or NULL object.\nPlease fill out your counts table and rerun this function.")
     } else if (dim(transcript_counts_table)[1] == 0 | dim(transcript_counts_table)[2] == 0) {
         stop("Your transcript_counts_table either has no rows or columns.\nPlease fill out your counts table and rerun this function.")
+    }
+
+    # Check for NAs in dataframes
+    if (sum(sapply(transcript_counts_table, anyNA)) > 0) {
+        stop("Your transcript_counts_table contains NA values. Please fix these first (either by removing or replacing with zeros) and re-run.")
     }
 
     # Check that transcript_id_colname and gene_id_colname are character strings.

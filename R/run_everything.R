@@ -59,6 +59,9 @@ run_everything <- function(transcript_counts_table, cell_labels_table,
         output_folder <- substr(output_folder, 1, nchar(output_folder) - 1)
     }
 
+    # Check if output folder exists. If not, make it.
+    dir.create(output_folder, showWarnings = FALSE)
+
     cat('------------------------------------------\n')
     cat('              Filtering dataset\n')
     cat('------------------------------------------\n\n')
