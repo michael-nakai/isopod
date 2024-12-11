@@ -1,4 +1,37 @@
+#' Simulate a transcript-level single-cell counts table
+#'
+#' This function wraps all other simulation functions to make a user-friendly one-liner that
+#' creates a transcript-level single-cell dataset, possibly exhibiting DTU between cell groups.
+#'
 #' @importFrom checkmate checkPathForOutput
+#' @param dataset_name The name of the dataset generated.
+#' @param number_of_genes The total number of genes to generate.
+#' @param cells_in_groups A vector defining the number of cell groups, as well as the number of cells in each group.
+#' For example, c(100, 200) would create two cell groups of 100 and 200 cells respectively.
+#' @param isoform_number_distribution A dataframe with two columns. The 'isoforms_in_gene" column contains the number of isoforms per gene,
+#' and the 'proportion' column contains a float between 0-1 that determines the proportion of genes to have that isoform number.
+#' @param gamma_shape The shape parameter of the gamma distribution to pull gene means from.
+#' @param gamma_scale The scale parameter of the gamma distribution to pull gene means from.
+#' @param proportion_of_genes_with_DTU A decimal between 0 and 1 that defines the proportion of all genes that should exhibit DTU.
+#' @param isoforms_to_swap A two-element vector that defines which isoforms should have their proportions swapped to simulate DTU.
+#' Isoforms are numbered by abundance, where isoform 1 contains the highest proportion of gene counts.
+#' @param outlier_gene_proportion The proportion of all genes that should exhibit outlier counts (between 0 and 1).
+#' @param gene_outliers_lognormal_location The location parameter for the log-normal curve to pull the gene outlier counts multiplier from.
+#' @param gene_outliers_lognormal_scale The scale parameter for the log-normal curve to pull the gene outlier counts multiplier from.
+#' @param proportion_of_genes_with_DGE The proportion of all genes that should exhibit DGE (between 0 and 1).
+#' @param DGE_lognormal_location The location parameter for the log-normal curve to pull the DGE count multiplier from.
+#' @param DGE_lognormal_scale The scale parameter for the log-normal curve to pull the DGE count multiplier from.
+#' @param counts_distribution_type The curve to generate counts from. Either 'poisson' or 'negative_binomial'.
+#' @param negative_binomial_low_bound The low bound for the size parameter for the negative binomial curve to generate counts from. Defaults to 0.2.
+#' @param negative_binomial_high_bound The high bound for the size parameter for the negative binomial curve to generate counts from. Defaults to 0.7.
+#' @param proportion_of_cells_with_inflated_counts The proportion of all cells that should exhibit outlier counts (between 0 and 1).
+#' @param cell_outliers_lognormal_location The location parameter for the log-normal curve to pull the cell outlier counts multiplier from.
+#' @param cell_outliers_lognormal_scale The scale parameter for the log-normal curve to pull the cell outlier counts multiplier from.
+#' @param save_filepath If set, saves the simulated data as an RDS object at the filepath provided. Defaults to NA.
+#' @param skip_distribution_dataframe_check Skips error checking of the dataframe provided in the isoform_number_distribution dataframe. Defaults to FALSE.
+#' @return A list object containing all simulation data and parameters.
+#' @export
+
 create_simulated_dataset <- function(dataset_name,
                                      number_of_genes = 2000,
                                      cells_in_groups = c(200, 200),
@@ -20,7 +53,6 @@ create_simulated_dataset <- function(dataset_name,
                                      cell_outliers_lognormal_location = 2.3,
                                      cell_outliers_lognormal_scale = 0.4,
                                      save_filepath = NA,
-                                     verbose = F,
                                      skip_distribution_dataframe_check = F) {
 
 

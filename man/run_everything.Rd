@@ -13,7 +13,6 @@ run_everything(
   cell_group_to_analyse,
   output_folder,
   gene_count_threshold = 20,
-  gene_appearence_in_cell_filtering = FALSE,
   collapse_isoforms_with_counts_below = 6,
   permutations = 10000,
   cores = 0,
@@ -42,9 +41,6 @@ in \code{cell_labels_table}.}
 \item{gene_count_threshold}{An integer. If the total counts for all transcripts in a gene is below this number, the transcripts will be filtered
 out of the table. Defaults to \code{20}.}
 
-\item{gene_appearence_in_cell_filtering}{A boolean. If \code{TRUE}, removes genes where at least N cells per group do not contain counts for the gene, where N is half the cell
-count of the smallest group. Defaults to \code{FALSE}.}
-
 \item{collapse_isoforms_with_counts_below}{An integer. If set to an integer higher than 1, isoforms within a gene that have n total counts or less will
 be collapsed together at a per-cell basis. This collapsing step is useful for reducing significant isoforms with very low counts, which may be biologically
 insignificant. This also may help reduce the number of p-value calculations in the permutation step, reducing computational load. Defaults to 6. Setting this
@@ -60,6 +56,9 @@ to more cores than are available, defaults to all available cores.}
 A significant value indicates that there is a difference in transcript proportions visible at the gene level, but does not specify
 which transcripts show the change within the gene. Enabling this also allows for other automatic calculations such
 as odds-ratio calculations. Defaults to \code{TRUE}.}
+
+\item{gene_appearence_in_cell_filtering}{A boolean. If \code{TRUE}, removes genes where at least N cells per group do not contain counts for the gene, where N is half the cell
+count of the smallest group. Defaults to \code{FALSE}.}
 }
 \value{
 The output of \code{get_permutation_pvals()}.

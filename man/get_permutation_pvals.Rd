@@ -15,7 +15,7 @@ get_permutation_pvals(
   run_on_all_groups = FALSE,
   permutations = 10000,
   cores = 0,
-  do_gene_level_comparisons = FALSE,
+  do_gene_level_comparisons = TRUE,
   return_detailed_pvalue_tables = FALSE,
   report_adjusted_pvalues = TRUE,
   cutoff = 0.1
@@ -53,7 +53,8 @@ to more cores than are available, defaults to all available cores - 1. A good st
 of reduced speed if this threshold isn't met.}
 
 \item{do_gene_level_comparisons}{If set to \code{TRUE}, also runs a permutation analysis on gene level differences. A significant value indicates that
-there is a difference in transcript proportions visible at the gene level, but does not specify which transcripts show the change within the gene.}
+there is a difference in transcript proportions visible at the gene level, but does not specify which transcripts show the change within the gene.
+Defaults to \code{TRUE}. Also adds an additional step to the cutoff filtering (for more detail, see the isopod vignette).}
 
 \item{return_detailed_pvalue_tables}{If set to \code{TRUE}, an additonal list of dataframes will be returned containing additional information on
 p-values generated over the permutations. If you'd like to look into p-value distributions over the permutations, this must be set to \code{TRUE}.

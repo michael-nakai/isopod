@@ -1,16 +1,20 @@
 Package: isopod
 Title: isopod - A tool for DTU detection in long-read single-cell datasets
-Version: 0.2
+Version: 0.99.0
 Authors@R: 
-    person("Michael", "Nakai", , "michael.nakai@petermac.org", role = c("aut", "cre"),
-           comment = c(ORCID = "0000-0002-6400-8007"))
+    person("Michael", "Nakai", 
+      email = "michael.nakai@petermac.org", 
+      role = c("aut", "cre"),
+      comment = c(ORCID = "0000-0002-6400-8007"))
 Description: isopod is a tool that attempts to find differential transcript usage at the isoform and gene-level, between one group of cells and all other cells. It takes an isoform-level counts table and a table defining cell groups as an input and performs a permutation analysis to identify DTU transcripts and genes.
 URL: https://github.com/michael-nakai/isopod
 BugReports: https://github.com/michael-nakai/isopod/issues
 License: `use_gpl3_license()`
 Encoding: UTF-8
+BiocType: Software
+biocViews: SingleCell, LongRead
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.0
+RoxygenNote: 7.3.2
 Imports:
     assertthat,
     dplyr,

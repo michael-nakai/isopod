@@ -77,7 +77,6 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
                                   cutoff = 0.1) {
 
     ### Helper functions
-
     # Reduced chisq functions for isoforms and genes
     chisq.slim.test <- function(Nt, Rt, Ng, Rg)
     {
@@ -288,6 +287,11 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
         total = permutations, clear = FALSE, width = 100)
     pb$tick(0)
 
+    # Some cluster environments need explicit exporting of .libPaths() to each worker node
+    paths <- .libPaths()
+    parallel::clusterExport(cl = cl, varlist = c('paths'), envir = environment())
+    parallel::clusterEvalQ(cl, .libPaths(paths))
+
     # Main permutation loop
     for (loopnum in 1:permutations) {
 
@@ -373,9 +377,10 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
 
         # Do the gene-level pval calculations here
         # NOTE (15/12/2023): We round the pvalues to 13 digits here, both to save space later on and because R doesn't accurately calculate beyond ~15 decimals
-        # Honestly if your statstical test depends on decimals beyond 10^-10, is it really a good test in the first place?
+        # Honestly if your statstical test depends on decimals beyond 10^-10, is it really a good test for this sort of implementation in the first place?
         if (do_gene_level_comparisons) {
-            tempresultsgene <- foreach::foreach (iter = 1:length(clusters), .multicombine = T, .packages = 'parallel') %dopar% {
+            tempresultsgene <- foreach::foreach (iter = 1:length(clusters), .multicombine = T, .packages = c('parallel')) %dopar% {
+
                 cluster_name <- clusters[iter]
 
                 vec_in <- lapply(split(calc_list_gene[[cluster_name]][["isoform_in"]], calc_list_gene[[cluster_name]][["gene_id"]]), FUN = function(x) c(x) + newconst)
@@ -454,7 +459,8 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
 
         # Loop over all clusters (RETURNS A LIST OF TABLES)
         # TODO: This only needs to return a list of tables for loop 2. From loop 3+, it can just return a list of vectors that get slotted into the pre-made p-value tables
-        tempresults <- foreach::foreach (iter = 1:length(clusters), .multicombine = T, .packages = 'parallel') %dopar% {
+        tempresults <- foreach::foreach (iter = 1:length(clusters), .multicombine = T, .packages = c('parallel')) %dopar% {
+
             cluster_name <- clusters[iter]
 
             pval_vector <-  parallel::mcmapply(chisq.slim.test,

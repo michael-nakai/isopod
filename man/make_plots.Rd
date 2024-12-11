@@ -25,7 +25,8 @@ make_plots(
 should be saved in. Useful if you'd like to recreate the plots yourself or in another program.}
 }
 \value{
-A list of ggplot objects, each corresponding to a plot for a cell grouping.
+A list containing two further lists. The first is a list of ggplot objects, each corresponding to a plot for a cell grouping.
+The second contains the
 }
 \description{
 Creates a differential isoform usage plot for each group.

@@ -18,6 +18,10 @@ knitr::opts_chunk$set(
 library(isopod)
 ```
 
+```{r}
+devtools::load_all('/oshlack_lab/michael_nakai/projects/isopod')
+```
+
 \
 
 # Overview
@@ -103,7 +107,6 @@ Isopod's transcript-level counts table simulation allows users to create a long-
 We first create a dataframe that defines the transcripts per gene distribution.
 
 ```{r}
-
 transcripts_per_gene <- data.frame('isoforms_in_gene' = c(2, 3), 'proportion' = c(0.5, 0.5))
 ```
 
@@ -121,6 +124,8 @@ simulated_dataset <- create_simulated_dataset(dataset_name,
                                      outlier_gene_proportion = 0.01,
                                      proportion_of_cells_with_inflated_counts = 0.01)
 ```
+
+## Outputs
 
 The function produces a list containing all relevant data from the simulation. The important outputs are:
 

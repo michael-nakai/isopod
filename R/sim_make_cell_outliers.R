@@ -4,7 +4,7 @@
 #' @param sciso_object The sciso_object list object created previously
 #' @param lognormal_location The location parameter for the log-normal curve to pull the multiplier from
 #' @param lognormal_scale The scale parameter for the log-normal curve to pull the multiplier from
-#' @param proportion_for_outlier_genes The proportion of all cells that should exhibit outlier counts (between 0 and 1)
+#' @param proportion_for_outlier_cells The proportion of all cells that should exhibit outlier counts (between 0 and 1)
 #' @return An updated sciso_object
 #' @noRd
 
