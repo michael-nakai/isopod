@@ -1,16 +1,6 @@
 isopod
 ================
 
-``` r
-devtools::load_all()
-#> ℹ Loading isopod
-#> Warning: ── Conflicts ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── isopod conflicts
-#> ──
-#> ✖ `generate_prop_tables` masks `isopod::generate_prop_tables()`.
-#> ℹ Did you accidentally source a file rather than using `load_all()`?
-#>   Run `rm(list = c("generate_prop_tables"))` to remove the conflicts.
-```
-
   
 
 # Overview
