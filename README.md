@@ -1,6 +1,16 @@
 isopod
 ================
 
+``` r
+devtools::load_all()
+#> ℹ Loading isopod
+#> Warning: ── Conflicts ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── isopod conflicts
+#> ──
+#> ✖ `generate_prop_tables` masks `isopod::generate_prop_tables()`.
+#> ℹ Did you accidentally source a file rather than using `load_all()`?
+#>   Run `rm(list = c("generate_prop_tables"))` to remove the conflicts.
+```
+
   
 
 # Overview
@@ -79,16 +89,110 @@ reconstruction of similar datasets.
 
 <br>
 
-# Running isopod’s DTU detection on a dataset
+# Installing Isopod
 
-First install isopod from the development Github and load it using:
+The development version of Isopod can be installed and loaded from this
+repository through the following code:
 
 ``` r
 remotes::install_github('michael-nakai/isopod')
 library(isopod)
 ```
 
-To run isopod, we need two dataframes:
+<br>
+
+------------------------------------------------------------------------
+
+<br>
+
+# Simulating a long-read single-cell dataset
+
+<br>
+
+Isopod’s transcript-level counts table simulation allows users to create
+a long-read single-cell dataset to their specifications. Here we’ll
+generate a sample dataset with the following parameters:
+
+- 3 cells groups, with the groups containing 100, 200, and 300 cells
+  respectively.
+
+- 1,000 genes, half containing two transcripts per gene and half
+  containing three transcripts per gene.
+
+- The default distribution parameters for gene counts and counts
+  generation.
+
+- 10% of genes exhibiting DTU.
+
+- 10% of genes exhibiting DGE.
+
+- 1% of genes and cells should exhibit outlier counts.
+
+<br>
+
+We first create a dataframe that defines the transcripts per gene
+distribution.
+
+``` r
+transcripts_per_gene <- data.frame('isoforms_in_gene' = c(2, 3), 'proportion' = c(0.5, 0.5))
+```
+
+We can then immediately simulate the dataset in one line of code, using
+the wrapper function `create_simulated_dataset()`.
+
+``` r
+dataset_name <- 'test_simulation'
+
+simulated_dataset <- create_simulated_dataset(dataset_name,
+                                     number_of_genes = 1000,
+                                     cells_in_groups = c(100, 200, 300),
+                                     isoform_number_distribution = transcripts_per_gene,
+                                     proportion_of_genes_with_DTU = 0.1,
+                                     proportion_of_genes_with_DGE = 0.1,
+                                     outlier_gene_proportion = 0.01,
+                                     proportion_of_cells_with_inflated_counts = 0.01)
+```
+
+## Outputs
+
+The function produces a list containing all relevant data from the
+simulation. The important outputs are:
+
+- `cell_designations`: A dataframe tying cells to cell groups. DTU and
+  DGE are generated between these groups.
+
+- `counts_table`: The long-read single-cell transcript-level counts
+  table.
+
+- `isoform_means_table`: A dataframe of average isoform counts for every
+  gene. Average gene counts are randomly drawn from a gamma
+  distribution. Isoforms receive a proportion of the average gene
+  counts, as seen in `isoform_props_table`.
+
+- `cell_outliers` and `gene_expression_outliers`: Dataframes describing
+  outlier cells and genes respectively, and the inflation factor applied
+  to the cell or gene counts.
+
+- `swapped_genes`: A list of vectors describing the genes exhibiting DTU
+  in every subsequent cell group. DTU is mainly simulated against the
+  first provided group of cells.
+
+- `DGE_details`: A dataframe of genes exhibiting the genes exhibiting
+  DGE, the group they exhibit them in, and the inflation factor assigned
+  to every gene.
+
+Other details regarding simulation parameters and inputs are also stored
+in the output list for easy query of the simulation.
+
+<br>
+
+------------------------------------------------------------------------
+
+<br>
+
+# Running isopod’s DTU detection on a dataset
+
+To run isopod’s DTU detection, we need two dataframes:
 
 - An isoform-level counts table with isoform and gene names
 - A dataframe that ties each cell to a cell group.
@@ -252,7 +356,7 @@ below.
 3.  All groups against the rest of the dataset
 
 <center>
-<img src="vignettes/vignettes/vignettes/vignettes/vignettes/vignettes/vignettes/vignettes/vignettes/vignettes/Runmodes.png" width="600" />
+<img src="vignettes/Runmodes.png" width="600" />
 </center>
 
 We generally recommend running the cell group of interest against either
@@ -335,7 +439,7 @@ explained below:
 
 <br>
 
-# Method Details
+# DTU Method Details
 
 Further details on the permutation analysis are provided below.
 

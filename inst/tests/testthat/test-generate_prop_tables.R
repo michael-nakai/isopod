@@ -7,7 +7,7 @@ correct_result <- readRDS(system.file('tests', 'testdata', 'test_prop_table_corr
 
 test_that("Function works as expected on test data", {
     result <- generate_prop_tables(counts_table, desig_table, 'transcript_id', 'gene_id', 'clusters')
-    
+    expect_identical(result, correct_result)
 })
 
 
