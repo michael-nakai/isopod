@@ -13,7 +13,7 @@
 #' @param cell_labels_colname A string corresponding to the column name in cell_labels_table where the group information is stored. Defaults to 'group'.
 #' @return A list of dataframes, with each dataframe corresponding to a specific group listed in cell_labels_table.
 #' @examples
-#' counts_table <- data.frame('transcript_id' = c(1, 2, 3), 'gene_id' = c(1, 1, 2), 'Cell_1' = c(0, 1, 10), 'Cell_2' = c(10, 2, 5), 'Cell_3' = c(2, 5, 1))
+#' counts_table <- data.frame('transcript_id' = c('t1', 't2', 't3'), 'gene_id' = c('g1', 'g1', 'g2'), 'Cell_1' = c(0, 1, 10), 'Cell_2' = c(10, 2, 5), 'Cell_3' = c(2, 5, 1))
 #' labels_table <- data.frame('grouping' = c('Cluster_1', 'Cluster_2', 'Cluster 1'), 'Cells' = c('Cell_1', 'Cell_2', 'Cell_3'))
 #' proportion_tables <- generate_prop_tables(counts_table, labels_table, 'transcript_id', 'gene_id', 'grouping')
 #' @export
@@ -22,6 +22,49 @@
 generate_prop_tables <- function(transcript_counts_table, cell_labels_table,
                                  transcript_id_colname='transcript_id', gene_id_colname='gene_id',
                                  cell_labels_colname='group') {
+  
+    ### Argument sanity checking
+    # All strings are ACTUALLY strings
+    if (typeof(transcript_id_colname) != 'character' | length(transcript_id_colname) != 1) {
+        stop('The transcript_id_colname argument is not a string.')
+    }
+    if (typeof(gene_id_colname) != 'character' | length(gene_id_colname) != 1) {
+        stop('The gene_id_colname argument is not a string.')
+    }
+    if (typeof(cell_labels_colname) != 'character' | length(cell_labels_colname) != 1) {
+        stop('The cell_labels_colname argument is not a string.')
+    }
+    
+    # Tables are full tables
+    if (is.null(dim(cell_labels_table))) {
+        stop("Your cell_labels_table is an empty dataframe or NULL object.\nPlease fill out your counts table and rerun this function.")
+    } else if (dim(cell_labels_table)[1] == 0 | dim(cell_labels_table)[2] == 0) {
+        stop("Your cell_labels_table either has no rows or columns.\nPlease fill out your counts table and rerun this function.")
+    }
+    if (sum(sapply(cell_labels_table, anyNA)) > 0) {
+        stop("Your cell_labels_table contains NA values. Please fix these first (either by removing or replacing with zeros) and re-run.")
+    }
+    if (is.null(dim(cell_labels_table))) {
+        stop("Your cell_labels_table is an empty dataframe or NULL object.\nPlease fill out your counts table and rerun this function.")
+    } else if (dim(cell_labels_table)[1] == 0 | dim(cell_labels_table)[2] == 0) {
+        stop("Your cell_labels_table either has no rows or columns.\nPlease fill out your counts table and rerun this function.")
+    }
+    if (sum(sapply(cell_labels_table, anyNA)) > 0) {
+        stop("Your cell_labels_table contains NA values. Please fix these first (either by removing or replacing with zeros) and re-run.")
+    }
+    
+    # Check that transcript_ and gene_id_colnames exist in colnames(transcript_counts_table), and same for cell_labels_colname
+    if (!(transcript_id_colname %in% colnames(transcript_counts_table))) {
+        stop(paste0(transcript_id_colname,
+                    " could not be found as a column name in your counts table.\nPlease check your column names and rerun this function."))
+    } else if (!(gene_id_colname %in% colnames(transcript_counts_table))) {
+        stop(paste0(gene_id_colname,
+                    " could not be found as a column name in your counts table.\nPlease check your column names and rerun this function."))
+    } else if (!(cell_labels_colname %in% colnames(cell_labels_table))) {
+        stop(paste0(cell_labels_colname,
+                    " could not be found as a column name in your cell labels table.\nPlease check your column names and rerun this function."))
+    }
+  
 
     other_colname_for_cell_labels <- grep(cell_labels_colname, colnames(cell_labels_table), invert = TRUE, value = TRUE)
     proplist <- list()
@@ -56,8 +99,13 @@ generate_prop_tables <- function(transcript_counts_table, cell_labels_table,
         proplist_df <- newdf
 
         # Cluster-specific transcript counts
-        proplist_df[[paste0(cluster, '_transcript_count')]] <- rowSums(clusterdf)
-        prop_calc_df[[paste0(cluster, '_transcript_count')]] <- proplist_df[[paste0(cluster, '_transcript_count')]]
+        if (is.null(nrow(clusterdf))) {
+          proplist_df[[paste0(cluster, '_transcript_count')]] <- sum(clusterdf)
+          prop_calc_df[[paste0(cluster, '_transcript_count')]] <- proplist_df[[paste0(cluster, '_transcript_count')]]
+        } else {
+          proplist_df[[paste0(cluster, '_transcript_count')]] <- rowSums(clusterdf)
+          prop_calc_df[[paste0(cluster, '_transcript_count')]] <- proplist_df[[paste0(cluster, '_transcript_count')]]
+        }
 
         # Cluster-specific gene counts
         a <- aggregate(proplist_df[[paste0(cluster, '_transcript_count')]], by = list(proplist_df$gene_id), FUN=sum)

@@ -4,6 +4,8 @@
 #' This should be one of the last steps, applied after all outlier and modifications are made (except for cell outliers).
 #' Mode can be 'poisson' or 'negative_binomial'.
 #' For negative binomial, a default of between 0.2-0.7 is set to reflect values found in real data.
+#' 
+#' @importFrom magrittr %>%
 #' @param sciso_object The list object created from `sim_prepare_sciso_data()`
 #' @param runmode The curve to generate counts from. Either 'poisson' or 'negative_binomial'.
 #' @param negbinom_low The low bound for the size parameter for the negative binomial curve to generate counts from. Defaults to 0.2
@@ -29,7 +31,7 @@ sim_fill_out_counts <- function(sciso_object, runmode = 'poisson', negbinom_low 
     sciso_object$cell_designations <- designations
 
     # Initialize the counts table by giving it a transcript_id and gene_id col
-    counts_table <- sciso_object$isoform_props_table %>% select(transcript_id, gene_id)
+    counts_table <- sciso_object$isoform_props_table %>% dplyr::select(transcript_id, gene_id)
 
     # If the runmode is 'negative_binomial', then randomly select group size (between 1/0.2 and 1/0.7) here:
     if (runmode == 'negative_binomial') {

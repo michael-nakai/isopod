@@ -40,21 +40,21 @@
 #' @param cutoff A `double` (decimal) indicating the initial p-value cutoff that isoforms (and genes if gene-level comparison is enabled) must pass to be included
 #' in subsequent permutations. This cutoff applies for the first permutation only, and potentially increases the speed of each permutation by filtering down
 #' data before calculations begin. With higher cutoffs, less data is filtered. To disable filtering, set the cutoff to 1. Defaults to `0.1`.
-#' @return A `list` containing:\n
-#' - `permutation_pvalues`: A dataframe of permutation p-values.\n
-#' - `first-loop_pvalues`: A dataframe of the first-loop chi-squared p-values.\n
-#' - `first-loop_contingency_tables`: A dataframe of first-loop contingency tables for each isoform.\n
-#' - `first-loop_contingency_tables_gene`: A dataframe of first-loop contingency table values for each gene.\n
-#' - `transcripts_filtered_from_cutoff`: A list of transcripts filtered due to the cutoff value.\n
-#' - `genes_filtered_from_cutoff`: If `do_gene_level_comparisons = TRUE`, a list of genes filtered due to the cutoff value.\n
-#' - `permutation_pvalues`: If `do_gene_level_comparisons = TRUE`, a dataframe of permutation p-values for each gene.\n
-#' - `first-loop_pvalues_gene` : If `do_gene_level_comparisons = TRUE`, a dataframe of the first-loop chi-squared p-values for each gene. \n
-#' - `odds_ratio_table`: If `do_gene_level_comparisons = TRUE`, the calculated odds-ratio for each isoform. Requires gene-level data to calculate.\n
-#' Note that the columns `other_in` and `other_out` are not used for gene-level calculations.\n
-#' - `pvalue_storage_list`: If `return_detailed_pvalue_tables = TRUE`, a dataframe containing isoform-level p-values at each step of the permutation.\n
-#' - `unadjusted_permutation_pvalues`: If `report_adjusted_pvalues = TRUE`, the unadjusted permutation p-values for each isoform.\n
-#' - `unadjusted_first-loop_pvalues`: If `report_adjusted_pvalues = TRUE`, the unadjusted permutation p-values for each isoform.\n
-#' - `unadjusted_permutation_pvalues_gene`: If `report_adjusted_pvalues = TRUE` and `do_gene_level_comparisons = TRUE`, the unadjusted permutation p-values for each gene.\n
+#' @return A `list` containing:
+#' - `permutation_pvalues`: A dataframe of permutation p-values.
+#' - `first-loop_pvalues`: A dataframe of the first-loop chi-squared p-values.
+#' - `first-loop_contingency_tables`: A dataframe of first-loop contingency tables for each isoform.
+#' - `first-loop_contingency_tables_gene`: A dataframe of first-loop contingency table values for each gene.
+#' - `transcripts_filtered_from_cutoff`: A list of transcripts filtered due to the cutoff value.
+#' - `genes_filtered_from_cutoff`: If `do_gene_level_comparisons = TRUE`, a list of genes filtered due to the cutoff value.
+#' - `permutation_pvalues`: If `do_gene_level_comparisons = TRUE`, a dataframe of permutation p-values for each gene.
+#' - `first-loop_pvalues_gene` : If `do_gene_level_comparisons = TRUE`, a dataframe of the first-loop chi-squared p-values for each gene. 
+#' - `odds_ratio_table`: If `do_gene_level_comparisons = TRUE`, the calculated odds-ratio for each isoform. Requires gene-level data to calculate.
+#' Note that the columns `other_in` and `other_out` are not used for gene-level calculations.
+#' - `pvalue_storage_list`: If `return_detailed_pvalue_tables = TRUE`, a dataframe containing isoform-level p-values at each step of the permutation.
+#' - `unadjusted_permutation_pvalues`: If `report_adjusted_pvalues = TRUE`, the unadjusted permutation p-values for each isoform.
+#' - `unadjusted_first-loop_pvalues`: If `report_adjusted_pvalues = TRUE`, the unadjusted permutation p-values for each isoform.
+#' - `unadjusted_permutation_pvalues_gene`: If `report_adjusted_pvalues = TRUE` and `do_gene_level_comparisons = TRUE`, the unadjusted permutation p-values for each gene.
 #' - `unadjusted_first-loop_pvalues_gene`: If `report_adjusted_pvalues = TRUE` and `do_gene_level_comparisons = TRUE`, the first-loop chi-squared p-values for each gene.
 #'
 #' @examples

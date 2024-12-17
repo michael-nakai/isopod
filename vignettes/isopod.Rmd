@@ -19,7 +19,7 @@ library(isopod)
 ```
 
 ```{r}
-devtools::load_all('/oshlack_lab/michael_nakai/projects/isopod')
+devtools::load_all()
 ```
 
 \

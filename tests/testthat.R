@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/reference/test_package.html#special-files
 
 library(testthat)
-library(diuPackage)
+library(isopod)
 
-test_check("diuPackage")
+test_check("isopod")

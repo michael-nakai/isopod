@@ -135,8 +135,7 @@ sim_prepare_sciso_data <- function(num_genes, cells_in_groups = c(200, 200),
                                                'gamma_scale' = gamma_scale,
                                                'slope_jitter' = slope_jitter,
                                                'isoform_distribution' = isoform_distribution,
-                                               'swapped_isos' = NA,
-                                               'tool_version' = toolversion))
+                                               'swapped_isos' = NA))
 
     return(return_list)
 }

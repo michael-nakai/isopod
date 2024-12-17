@@ -20,8 +20,6 @@
 #' @param output_folder A filepath to an output folder where data will be saved. If the folder doesn't exist, Isopod will attempt to create it.
 #' @param gene_count_threshold An integer. If the total counts for all transcripts in a gene is below this number, the transcripts will be filtered
 #' out of the table. Defaults to `20`.
-#' @param gene_appearence_in_cell_filtering A boolean. If `TRUE`, removes genes where at least N cells per group do not contain counts for the gene, where N is half the cell
-#' count of the smallest group. Defaults to `FALSE`.
 #' @param collapse_isoforms_with_counts_below An integer. If set to an integer higher than 1, isoforms within a gene that have n total counts or less will
 #' be collapsed together at a per-cell basis. This collapsing step is useful for reducing significant isoforms with very low counts, which may be biologically
 #' insignificant. This also may help reduce the number of p-value calculations in the permutation step, reducing computational load. Defaults to 6. Setting this

@@ -235,8 +235,8 @@ filter_counts_table <- function(transcript_counts_table,
                 rows_to_remove <- rows_to_remove[-1]
 
                 # Update the DT
-                set(transcript_counts_table, row_to_replace, transcript_id_colname, paste0(gid, '_collapsed_isoforms'))
-                set(transcript_counts_table, row_to_replace, replacement_vec, as.list(colsum_vec))
+                data.table::set(transcript_counts_table, row_to_replace, transcript_id_colname, paste0(gid, '_collapsed_isoforms'))
+                data.table::set(transcript_counts_table, row_to_replace, replacement_vec, as.list(colsum_vec))
 
                 # Add the indexes to remove
                 to_remove_indexes <- c(to_remove_indexes, rows_to_remove)

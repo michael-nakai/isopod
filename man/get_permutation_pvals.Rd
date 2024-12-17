@@ -69,22 +69,22 @@ in subsequent permutations. This cutoff applies for the first permutation only, 
 data before calculations begin. With higher cutoffs, less data is filtered. To disable filtering, set the cutoff to 1. Defaults to \code{0.1}.}
 }
 \value{
-A \code{list} containing:\n
+A \code{list} containing:
 \itemize{
-\item \code{permutation_pvalues}: A dataframe of permutation p-values.\n
-\item \code{first-loop_pvalues}: A dataframe of the first-loop chi-squared p-values.\n
-\item \code{first-loop_contingency_tables}: A dataframe of first-loop contingency tables for each isoform.\n
-\item \code{first-loop_contingency_tables_gene}: A dataframe of first-loop contingency table values for each gene.\n
-\item \code{transcripts_filtered_from_cutoff}: A list of transcripts filtered due to the cutoff value.\n
-\item \code{genes_filtered_from_cutoff}: If \code{do_gene_level_comparisons = TRUE}, a list of genes filtered due to the cutoff value.\n
-\item \code{permutation_pvalues}: If \code{do_gene_level_comparisons = TRUE}, a dataframe of permutation p-values for each gene.\n
-\item \code{first-loop_pvalues_gene} : If \code{do_gene_level_comparisons = TRUE}, a dataframe of the first-loop chi-squared p-values for each gene. \n
-\item \code{odds_ratio_table}: If \code{do_gene_level_comparisons = TRUE}, the calculated odds-ratio for each isoform. Requires gene-level data to calculate.\n
-Note that the columns \code{other_in} and \code{other_out} are not used for gene-level calculations.\n
-\item \code{pvalue_storage_list}: If \code{return_detailed_pvalue_tables = TRUE}, a dataframe containing isoform-level p-values at each step of the permutation.\n
-\item \code{unadjusted_permutation_pvalues}: If \code{report_adjusted_pvalues = TRUE}, the unadjusted permutation p-values for each isoform.\n
-\item \code{unadjusted_first-loop_pvalues}: If \code{report_adjusted_pvalues = TRUE}, the unadjusted permutation p-values for each isoform.\n
-\item \code{unadjusted_permutation_pvalues_gene}: If \code{report_adjusted_pvalues = TRUE} and \code{do_gene_level_comparisons = TRUE}, the unadjusted permutation p-values for each gene.\n
+\item \code{permutation_pvalues}: A dataframe of permutation p-values.
+\item \code{first-loop_pvalues}: A dataframe of the first-loop chi-squared p-values.
+\item \code{first-loop_contingency_tables}: A dataframe of first-loop contingency tables for each isoform.
+\item \code{first-loop_contingency_tables_gene}: A dataframe of first-loop contingency table values for each gene.
+\item \code{transcripts_filtered_from_cutoff}: A list of transcripts filtered due to the cutoff value.
+\item \code{genes_filtered_from_cutoff}: If \code{do_gene_level_comparisons = TRUE}, a list of genes filtered due to the cutoff value.
+\item \code{permutation_pvalues}: If \code{do_gene_level_comparisons = TRUE}, a dataframe of permutation p-values for each gene.
+\item \code{first-loop_pvalues_gene} : If \code{do_gene_level_comparisons = TRUE}, a dataframe of the first-loop chi-squared p-values for each gene.
+\item \code{odds_ratio_table}: If \code{do_gene_level_comparisons = TRUE}, the calculated odds-ratio for each isoform. Requires gene-level data to calculate.
+Note that the columns \code{other_in} and \code{other_out} are not used for gene-level calculations.
+\item \code{pvalue_storage_list}: If \code{return_detailed_pvalue_tables = TRUE}, a dataframe containing isoform-level p-values at each step of the permutation.
+\item \code{unadjusted_permutation_pvalues}: If \code{report_adjusted_pvalues = TRUE}, the unadjusted permutation p-values for each isoform.
+\item \code{unadjusted_first-loop_pvalues}: If \code{report_adjusted_pvalues = TRUE}, the unadjusted permutation p-values for each isoform.
+\item \code{unadjusted_permutation_pvalues_gene}: If \code{report_adjusted_pvalues = TRUE} and \code{do_gene_level_comparisons = TRUE}, the unadjusted permutation p-values for each gene.
 \item \code{unadjusted_first-loop_pvalues_gene}: If \code{report_adjusted_pvalues = TRUE} and \code{do_gene_level_comparisons = TRUE}, the first-loop chi-squared p-values for each gene.
 }
 }
