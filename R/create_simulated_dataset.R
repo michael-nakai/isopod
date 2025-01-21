@@ -123,18 +123,15 @@ create_simulated_dataset <- function(dataset_name,
                                            slope_jitter = 0, show_warnings = F)
 
     # Swap means if DTU proportion is set here
-    if (proportion_of_genes_with_DTU != 0) {
+    # Repeat swaps for each group
+    for (i in 2:length(cells_in_groups)) {
 
-        # Repeat swaps for each group
-        for (i in 2:length(cells_in_groups)) {
-
-            group_name <- paste0('group_', i)
-            sciso_object <- sim_random_swap_means(sciso_object,
-                                                  group_name,
-                                                  proportion_to_swap = proportion_of_genes_with_DTU,
-                                                  swap_from = isoforms_to_swap[1],
-                                                  swap_to = isoforms_to_swap[2])
-        }
+        group_name <- paste0('group_', i)
+        sciso_object <- sim_random_swap_means(sciso_object,
+                                              group_name,
+                                              proportion_to_swap = proportion_of_genes_with_DTU,
+                                              swap_from = isoforms_to_swap[1],
+                                              swap_to = isoforms_to_swap[2])
     }
 
     # Create gene expression outliers if set here

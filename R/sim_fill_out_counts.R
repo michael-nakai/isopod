@@ -22,10 +22,7 @@ sim_fill_out_counts <- function(sciso_object, runmode = 'poisson', negbinom_low 
     }
 
     # Create the designations table first
-    cell_group_vec <- c()
-    for (i in 1:length(sciso_object$cells_per_group)) {
-        cell_group_vec <- c(cell_group_vec, rep(sciso_object$groups[i], sciso_object$cells_per_group[i]))
-    }
+    cell_group_vec <- rep(sciso_object$groups, times=sciso_object$cells_per_group)
     designations <- data.frame(list('cell_id' = sciso_object$cell_labels,
                                     'cell_group' = cell_group_vec))
     sciso_object$cell_designations <- designations
@@ -45,55 +42,33 @@ sim_fill_out_counts <- function(sciso_object, runmode = 'poisson', negbinom_low 
     }
 
     # Make a list of lists. The sublist names are each group, and the further sublists of the sublists are rows within that group.
+    # Use .subset2 to access columns quickly here (15x faster than normal $ subsetting)
     grouplist <- list()
     meancol_names <- colnames(sciso_object$isoform_means_table)[3:ncol(sciso_object$isoform_means_table)]
     for (i in 1:length(sciso_object$groups)) {
         groupname <- sciso_object$groups[i]
         meansgroupname <- meancol_names[i]
-        temp <- list()
-        groupmean_vec <- sciso_object$isoform_means_table[[meansgroupname]]
+        groupmean_vec <- .subset2(sciso_object$isoform_means_table, meansgroupname)
         cells_in_group <- sciso_object$cells_per_group[i]
-
-        if (runmode == 'negative_binomial') {
+        
+        if (runmode != 'negative_binomial') {
+            grouplist[[groupname]] <- lapply(groupmean_vec, function(x) {
+                rpois(cells_in_group, x)
+            })
+        } else {
             negbinom_size <- negbinom_recording$negative_binomial_size[i]
+            grouplist[[groupname]] <- lapply(groupmean_vec, function(x) {
+                rnbinom(cells_in_group, mu = x, size = negbinom_size)
+            })
         }
-
-        # Fill out temp with vectors corresponding to rows for that group
-        # THIS DEPENDS ON MODE for how the counts are filled
-        j <- 1
-        for (mean_num in groupmean_vec) {
-            if (runmode != 'negative_binomial') {
-                rowvec <- rpois(cells_in_group, mean_num)
-            } else {
-                rowvec <- rnbinom(cells_in_group, mu = mean_num, size = negbinom_size)
-            }
-            tempname <- as.character(j)
-            temp[[tempname]] <- rowvec
-            j <- j + 1
-        }
-        grouplist[[groupname]] <- temp
     }
 
     # For each sublist of the sublists, combine them as rows into a table
-    first_loop <- T
-    for (groupname in names(grouplist)) {
-        subtable <- as.data.frame(do.call(rbind, grouplist[[groupname]]))
-        colnames(subtable) <- NULL
-        rownames(subtable) <- NULL
-        if (!(first_loop)) {
-            bigtable <- cbind(bigtable, subtable)
-            colnames(bigtable) <- NULL
-            rownames(bigtable) <- NULL
-        } else {
-            bigtable <- subtable
-            first_loop <- F
-        }
-    }
+    bigtable <- as.data.frame(data.table::transpose(data.table::rbindlist(grouplist)))
 
     # Add the necessary data to the counts table and assign it.
     colnames(bigtable) <- sciso_object$cell_labels
-    counts_table <- cbind(counts_table, bigtable)
-    sciso_object$counts_table <- counts_table
+    sciso_object$counts_table <- cbind(counts_table, bigtable)
 
     if (runmode == 'negative_binomial') {
         sciso_object$other_details[['counts_generation_negative_binomial_details']] <- negbinom_recording

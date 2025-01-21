@@ -185,7 +185,7 @@ permutation_results <- run_everything(counts_table,
                                       output_folder = 'permutation_results')
 ```
 
-The permutation analysis is computationally expensive, and may take some time depending on the size of your dataset and the computational power availble to you. Luckily, it's also multithreaded, and will try to use all available cores (except for one) on your computer or cluster to speed up the permutations. This means that it can take anywhere from 5 minutes (for a small dataset) to a few hours (for a large dataset with moderate compute power). It's probably best to check the ETA listed on the progress bar and have a coffee or dinner while isopod runs.
+The permutation analysis is computationally expensive, and may take some time depending on the size of your dataset and the computational power availble to you. Luckily, it's also multithreaded, and will try to use all available cores (except for one, which it leaves for you) on your computer or cluster to speed up the permutations. This means that it can take anywhere from 5 minutes (for a small dataset) to several hours (for a large dataset with moderate compute power). It's probably best to check the ETA listed on the progress bar and have a coffee or dinner while isopod runs.
 
 ## Outputs
 

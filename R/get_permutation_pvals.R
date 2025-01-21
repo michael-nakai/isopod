@@ -75,6 +75,14 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
                                   cores = 0, do_gene_level_comparisons = TRUE,
                                   return_detailed_pvalue_tables = FALSE, report_adjusted_pvalues = TRUE,
                                   cutoff = 0.1) {
+    
+    
+    ### Basic inputs check
+    # Check that transcript_counts_table and cell labels table is a dataframe or NULL object. 
+    # If NULL, a more descriptive error will be raised later.
+    stopifnot(typeof(transcript_counts_table) == 'NULL' | inherits(transcript_counts_table, "data.frame"))
+    stopifnot(typeof(cell_labels_table) == 'NULL' | inherits(cell_labels_table, "data.frame"))
+    
 
     ### Helper functions
     # Reduced chisq functions for isoforms and genes
@@ -171,10 +179,9 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
                     'g1' = g1,
                     'g2' = g2))
     }
-
+    
 
     ### Main body
-
     results_check <- check_analysis_inputs(analysis_group_1, analysis_group_2, run_on_all_groups)
     runmode <- results_check$runmode
     analysis_group_1 <- results_check$g1
@@ -311,7 +318,8 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
             clusters <- c(analysis_group_1, analysis_group_2)
         }
         for (cluster in clusters) {
-            cells_in_cluster <- unlist(designations[designations[[cell_labels_colname]] == cluster, ][, ..cell_barcodes_col])
+            logvec <- designations[[cell_labels_colname]] == cluster
+            cells_in_cluster <- unlist(designations[logvec, ][, ..cell_barcodes_col])
             column_indexes <- which(colnames(filtered_tcount_matrix) %in% cells_in_cluster)
             a <- filtered_tcount_matrix[, column_indexes]
             cluster_counts_list[[cluster]] <- rowSums(a)
@@ -746,7 +754,7 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
         }
     }
 
-    cat('Finished DTU permutation analysis')
+    cat('Finished DTU permutation analysis\n')
 
     return(to_return)
 }
