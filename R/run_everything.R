@@ -32,6 +32,9 @@
 #' A significant value indicates that there is a difference in transcript proportions visible at the gene level, but does not specify
 #' which transcripts show the change within the gene. Enabling this also allows for other automatic calculations such
 #' as odds-ratio calculations. Defaults to `TRUE`.
+#' @param disable_overwrite_warning A boolean. Disables asking for user input if the output folder already exists, as 
+#' running this function will overwrite the previous run's results. If running run_everything() within a pipeline, this should be
+#' set to `FALSE` to allow for inputless execution. Defaults to `TRUE`.
 #' @return The output of `get_permutation_pvals()`.
 #' @examples
 #' counts_table <- data.frame('transcript_id' = c(1, 2, 3), 'gene_id' = c(1, 1, 2), 'Cell_1' = c(0, 1, 10), 'Cell_2' = c(10, 2, 5), 'Cell_3' = c(2, 5, 1))
@@ -45,7 +48,7 @@ run_everything <- function(transcript_counts_table, cell_labels_table,
                            cell_labels_colname, cell_group_to_analyse, output_folder,
                            gene_count_threshold = 20, collapse_isoforms_with_counts_below = 6,
                            permutations = 10000, cores = 0,
-                           do_gene_level_comparisons = TRUE) {
+                           do_gene_level_comparisons = TRUE, disable_overwrite_warning = FALSE) {
 
 
     # Quick check/trim of output folder string
@@ -57,7 +60,24 @@ run_everything <- function(transcript_counts_table, cell_labels_table,
         output_folder <- substr(output_folder, 1, nchar(output_folder) - 1)
     }
 
-    # Check if output folder exists. If not, make it.
+    # Check if output folder exists. 
+    # If so, throw a warning and wait for user confirmation.
+    if (dir.exists(output_folder) & !disable_overwrite_warning) {
+        warning(paste0(output_folder, ' already exists, and will be overwritten.\n',
+                       'This warning can be turned off by setting "disable_overwrite_warning = TRUE" when running the function.\n',
+                       'Are you sure you want to overwrite any previous runs in the output folder? (y/n).'))
+        
+        if (getOption('isopod.test_mode')) {  # If we're in testing mode, automatically fail the userinput step.
+            userinput <- 'N'
+        } else {
+            userinput <- readline()
+        }
+        
+        if ((userinput != 'Y') | (userinput != 'y')) {
+            stop('Stopped by user.')
+        }
+    }
+    
     dir.create(output_folder, showWarnings = FALSE)
 
     cat('------------------------------------------\n')
@@ -70,11 +90,9 @@ run_everything <- function(transcript_counts_table, cell_labels_table,
                                                  collapse_isoforms_with_counts_below = collapse_isoforms_with_counts_below)
 
     cat('2. Saving filtered counts table to', output_folder, '\n')
-    if (collapse_isoforms_with_counts_below != 0) {
-        filtered_iso_list <- filtered_counts_table$list_of_collapsed_isoforms
-        filtered_counts_table <- filtered_counts_table$counts_table
-        saveRDS(filtered_iso_list, file.path(output_folder, 'list_of_collapsed_isoforms.rds'))
-    }
+    filtered_iso_list <- filtered_counts_table$list_of_collapsed_isoforms
+    filtered_counts_table <- filtered_counts_table$counts_table
+    saveRDS(filtered_iso_list, file.path(output_folder, 'list_of_collapsed_isoforms.rds'))
     saveRDS(filtered_counts_table, file.path(output_folder, 'filtered_counts_table.rds'))
 
     cat('------------------------------------------\n')
@@ -94,6 +112,6 @@ run_everything <- function(transcript_counts_table, cell_labels_table,
     cat('2. Saving permutation results to', output_folder, '\n\n')
     saveRDS(permutation_pval_object, file.path(output_folder, 'permutation_results.rds'))
 
-    cat('Finished! Check', output_folder, ' for results.')
+    cat('Finished! Check', output_folder, 'for results.\n')
     return(permutation_pval_object)
 }

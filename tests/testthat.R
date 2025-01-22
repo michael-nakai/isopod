@@ -9,4 +9,4 @@
 library(testthat)
 library(isopod)
 
-test_check("isopod")
+test_check('isopod')

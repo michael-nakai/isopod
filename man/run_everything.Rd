@@ -16,7 +16,8 @@ run_everything(
   collapse_isoforms_with_counts_below = 6,
   permutations = 10000,
   cores = 0,
-  do_gene_level_comparisons = TRUE
+  do_gene_level_comparisons = TRUE,
+  disable_overwrite_warning = FALSE
 )
 }
 \arguments{
@@ -57,8 +58,9 @@ A significant value indicates that there is a difference in transcript proportio
 which transcripts show the change within the gene. Enabling this also allows for other automatic calculations such
 as odds-ratio calculations. Defaults to \code{TRUE}.}
 
-\item{gene_appearence_in_cell_filtering}{A boolean. If \code{TRUE}, removes genes where at least N cells per group do not contain counts for the gene, where N is half the cell
-count of the smallest group. Defaults to \code{FALSE}.}
+\item{disable_overwrite_warning}{A boolean. Disables asking for user input if the output folder already exists, as
+running this function will overwrite the previous run's results. If running run_everything() within a pipeline, this should be
+set to \code{FALSE} to allow for inputless execution. Defaults to \code{TRUE}.}
 }
 \value{
 The output of \code{get_permutation_pvals()}.

@@ -9,7 +9,8 @@ Authors@R:
 Description: isopod is a tool that attempts to find differential transcript usage at the isoform and gene-level, between one group of cells and all other cells. It takes an isoform-level counts table and a table defining cell groups as an input and performs a permutation analysis to identify DTU transcripts and genes.
 URL: https://github.com/michael-nakai/isopod
 BugReports: https://github.com/michael-nakai/isopod/issues
-License: `use_gpl3_license()`
+License: GPL (>= 3)
+LazyData: FALSE
 Encoding: UTF-8
 BiocType: Software
 biocViews: SingleCell, LongRead

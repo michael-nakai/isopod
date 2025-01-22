@@ -44,14 +44,6 @@ generate_prop_tables <- function(transcript_counts_table, cell_labels_table,
     if (sum(sapply(cell_labels_table, anyNA)) > 0) {
         stop("Your cell_labels_table contains NA values. Please fix these first (either by removing or replacing with zeros) and re-run.")
     }
-    if (is.null(dim(cell_labels_table))) {
-        stop("Your cell_labels_table is an empty dataframe or NULL object.\nPlease fill out your counts table and rerun this function.")
-    } else if (dim(cell_labels_table)[1] == 0 | dim(cell_labels_table)[2] == 0) {
-        stop("Your cell_labels_table either has no rows or columns.\nPlease fill out your counts table and rerun this function.")
-    }
-    if (sum(sapply(cell_labels_table, anyNA)) > 0) {
-        stop("Your cell_labels_table contains NA values. Please fix these first (either by removing or replacing with zeros) and re-run.")
-    }
     
     # Check that transcript_ and gene_id_colnames exist in colnames(transcript_counts_table), and same for cell_labels_colname
     if (!(transcript_id_colname %in% colnames(transcript_counts_table))) {
@@ -75,7 +67,7 @@ generate_prop_tables <- function(transcript_counts_table, cell_labels_table,
     prop_calc_df[['total_transcript_count']] <- rowSums(nolabel_transcript_counts_table)
 
     # Find total gene counts across all clusters
-    a <- aggregate(prop_calc_df$total_transcript_count, by = list(prop_calc_df$gene_id), FUN=sum)
+    a <- stats::aggregate(prop_calc_df$total_transcript_count, by = list(prop_calc_df$gene_id), FUN=sum)
     colnames(a) <- c(gene_id_colname, 'total_gene_count')
     prop_calc_df <- merge(prop_calc_df, a, by = gene_id_colname, all.x = TRUE)
 

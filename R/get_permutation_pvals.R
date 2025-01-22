@@ -61,8 +61,9 @@
 #' # Note that transcript and gene IDs can be character strings instead of numbers.
 #' counts_table <- data.frame('transcript_id' = c(1, 2, 3), 'gene_id' = c(1, 1, 2), 'Cell_1' = c(0, 1, 10), 'Cell_2' = c(10, 2, 5), 'Cell_3' = c(2, 5, 1))
 #' labels_table <- data.frame('grouping' = c('Cluster_1', 'Cluster_2', 'Cluster 1'), 'Cells' = c('Cell_1', 'Cell_2', 'Cell_3'))
+#' # 10 permutations are used as an example, but you should always use AT LEAST 10000 permutations to get reliable results.
 #' permutation_results <- get_permutation_pvals(counts_table, labels_table, 'transcript_id', 'gene_id', 'grouping',
-#'                                              run_on_all_groups = TRUE, permutations = 10000, cores = 0,
+#'                                              run_on_all_groups = TRUE, permutations = 10, cores = 1,
 #'                                              do_gene_level_comparisons = TRUE, return_detailed_pvalue_tables = FALSE,
 #'                                              report_adjusted_pvalues = TRUE, cutoff = 1)
 #' @export
@@ -82,6 +83,54 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
     # If NULL, a more descriptive error will be raised later.
     stopifnot(typeof(transcript_counts_table) == 'NULL' | inherits(transcript_counts_table, "data.frame"))
     stopifnot(typeof(cell_labels_table) == 'NULL' | inherits(cell_labels_table, "data.frame"))
+    
+    # Check for empty or NA-containing transcript_counts_table, and raise errors if true.
+    if (is.null(dim(transcript_counts_table))) {
+        stop("Your transcript_counts_table is an empty dataframe or NULL object.\nPlease fill out your counts table and rerun this function.")
+    } else if (dim(transcript_counts_table)[1] == 0 | dim(transcript_counts_table)[2] == 0) {
+        stop("Your transcript_counts_table either has no rows or columns.\nPlease fill out your counts table and rerun this function.")
+    }
+    if (sum(sapply(transcript_counts_table, anyNA)) > 0) {
+        stop("Your transcript_counts_table contains NA values. Please fix these first (either by removing or replacing with zeros) and re-run.")
+    }
+    
+    # Check for empty or NA-containing cell_labels_table, and raise errors if true.
+    if (is.null(dim(cell_labels_table))) {
+        stop("Your cell_labels_table is an empty dataframe or NULL object.\nPlease fill out your counts table and rerun this function.")
+    } else if (dim(cell_labels_table)[1] == 0 | dim(cell_labels_table)[2] == 0) {
+        stop("Your cell_labels_table either has no rows or columns.\nPlease fill out your counts table and rerun this function.")
+    }
+    if (sum(sapply(cell_labels_table, anyNA)) > 0) {
+        stop("Your cell_labels_table contains NA values. Please fix these first (either by removing or replacing with zeros) and re-run.")
+    }
+    
+    # Check that string args are character strings.
+    stopifnot(assertthat::is.string(transcript_id_colname) | assertthat::is.string(gene_id_colname) | 
+                  assertthat::is.string(cell_labels_colname) | assertthat::is.string(analysis_group_1) | assertthat::is.string(analysis_group_2))
+    
+    # Check that transcript_ and gene_id_colnames exist in colnames(transcript_counts_table), and that
+    # cell_labels_colname exists in colnames(cell_labels_table)
+    if (!(transcript_id_colname %in% colnames(transcript_counts_table))) {
+        stop(paste0(transcript_id_colname,
+                    " could not be found as a column name in your counts table.\nPlease check your column names and rerun this function."))
+    } else if (!(gene_id_colname %in% colnames(transcript_counts_table))) {
+        stop(paste0(gene_id_colname,
+                    " could not be found as a column name in your counts table.\nPlease check your column names and rerun this function."))
+    }
+    if (!(cell_labels_colname %in% colnames(cell_labels_table))) {
+        stop(paste0(cell_labels_colname,
+                    " could not be found as a column name in your cell labels table.\nPlease check your column names and rerun this function."))
+    }
+    
+    # If set, check that analysis_group_1 and analysis_group_2 exist in the cell_labels_table[[cell_labels_colname]]
+    if ((!is.na(analysis_group_1)) & (!(analysis_group_1 %in% cell_labels_table[[cell_labels_colname]]))) {
+        stop(paste0(analysis_group_1,
+                    " could not be found within the ", cell_labels_colname, " column in the cell labels table provided."))
+    }
+    if ((!is.na(analysis_group_2)) & (!(analysis_group_2 %in% cell_labels_table[[cell_labels_colname]]))) {
+        stop(paste0(analysis_group_2,
+                    " could not be found within the ", cell_labels_colname, " column in the cell labels table provided."))
+    }
     
 
     ### Helper functions
@@ -313,6 +362,7 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
         # DF implementation
         # For a 1v1 implementation, only 2 clusters are calculated.
         # For a 1vrest, only 1 cluster is calculated, then counts of all others can be calculated by total - cluster
+        # Note (2025-01-11): Fixed a 1v1 implementation bug that caused all groups to be considered for cells_in_cluster in 1v1 mode
         cluster_counts_list <- list()
         if (runmode == '1v1') {
             clusters <- c(analysis_group_1, analysis_group_2)

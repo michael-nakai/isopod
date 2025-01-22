@@ -102,7 +102,7 @@ filter_counts_table <- function(transcript_counts_table,
 
     transcript_counts_table <- transcript_counts_table %>%
         dplyr::group_by(temp_gene_id_new) %>%
-        dplyr::filter(n() > 1)
+        dplyr::filter(dplyr::n() > 1)
 
     transcript_counts_table[['temp_gene_id_new']] <- NULL
     transcript_counts_table <- transcript_counts_table[order(transcript_counts_table[[gene_id_colname]], transcript_counts_table[[transcript_id_colname]]), ]
@@ -137,7 +137,7 @@ filter_counts_table <- function(transcript_counts_table,
             cell_nums_to_check <- as.integer(group_counts[match(TRUE, (group_counts >= min_cells))] * autofilter_threshold)
 
             # This whole block is just trying to get the number of cells with a count per group, which is stored in per_group_counts_table
-            per_group_counts_table <- transcript_counts_table %>% select({{transcript_id_colname}}, {{gene_id_colname}})
+            per_group_counts_table <- transcript_counts_table %>% dplyr::select({{transcript_id_colname}}, {{gene_id_colname}})
             for (group in unique(cell_labels_table[[cell_labels_colname]])) {
                 cell_id_subset <- cell_labels_table[which(cell_labels_table[cell_labels_colname] == group), ][[cell_id_colname]]
                 temp <- transcript_counts_table[, (colnames(transcript_counts_table) %in% c(gene_id_colname, cell_id_subset))]
@@ -145,7 +145,7 @@ filter_counts_table <- function(transcript_counts_table,
             }
             per_group_counts_table[[transcript_id_colname]] <- NULL
             colnames(per_group_counts_table) <- c('gene_id', colnames(per_group_counts_table)[2:ncol(per_group_counts_table)])
-            per_group_counts_table <- aggregate(. ~ gene_id, data = per_group_counts_table, FUN = sum)
+            per_group_counts_table <- stats::aggregate(. ~ gene_id, data = per_group_counts_table, FUN = sum)
 
             # If a gene has more cells with a count than cell_nums_to_check, we keep the gene. Else, we don't.
             genes_to_keep <- c()
