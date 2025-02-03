@@ -209,7 +209,7 @@ filter_counts_table <- function(transcript_counts_table,
 
         a <- Sys.time()
         for (i in 1:length(names(collapsed_list))) {
-            if (i %% 10 == 0) {
+            if (i %% 1000 == 0) {
                 write(paste0('Collapsing isoforms for gene ', i, ' / ', length(names(collapsed_list)),
                              ' (', round(i/length(names(collapsed_list))*100, 2), '%)'),
                       stdout())
