@@ -71,10 +71,10 @@ run_everything <- function(transcript_counts_table, cell_labels_table,
                        'This warning can be turned off by setting "disable_overwrite_warning = TRUE" when running the function.\n',
                        'Are you sure you want to overwrite any previous runs in the output folder? (y/n).'))
         
-        if (getOption('isopod.test_mode')) {  # If we're in testing mode, automatically fail the userinput step.
-            userinput <- 'N'
-        } else {
+        if (is.null(getOption('isopod.test_mode'))) {  # If we're in testing mode, automatically fail the userinput step.
             userinput <- readline()
+        } else {
+            userinput <- 'N'
         }
         
         if ((userinput != 'Y') | (userinput != 'y')) {
