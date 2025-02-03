@@ -13,9 +13,12 @@
 #' @param cell_labels_colname A string corresponding to the column name in cell_labels_table where the group information is stored. Defaults to 'group'.
 #' @return A list of dataframes, with each dataframe corresponding to a specific group listed in cell_labels_table.
 #' @examples
-#' counts_table <- data.frame('transcript_id' = c('t1', 't2', 't3'), 'gene_id' = c('g1', 'g1', 'g2'), 'Cell_1' = c(0, 1, 10), 'Cell_2' = c(10, 2, 5), 'Cell_3' = c(2, 5, 1))
-#' labels_table <- data.frame('grouping' = c('Cluster_1', 'Cluster_2', 'Cluster 1'), 'Cells' = c('Cell_1', 'Cell_2', 'Cell_3'))
-#' proportion_tables <- generate_prop_tables(counts_table, labels_table, 'transcript_id', 'gene_id', 'grouping')
+#' counts_table <- data.frame('transcript_id' = c('t1', 't2', 't3'), 'gene_id' = c('g1', 'g1', 'g2'), 
+#'                            'Cell_1' = c(0, 1, 10), 'Cell_2' = c(10, 2, 5), 'Cell_3' = c(2, 5, 1))
+#' labels_table <- data.frame('grouping' = c('Cluster_1', 'Cluster_2', 'Cluster 1'), 
+#'                            'Cells' = c('Cell_1', 'Cell_2', 'Cell_3'))
+#' proportion_tables <- generate_prop_tables(counts_table, labels_table, 
+#'                                           'transcript_id', gene_id', 'grouping')
 #' @export
 
 
