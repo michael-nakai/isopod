@@ -206,15 +206,13 @@ filter_counts_table <- function(transcript_counts_table,
         transcript_vec <- transcript_counts_table[[transcript_id_colname]]
         transcript_counts_table <- data.table::as.data.table(transcript_counts_table)
         replacement_vec <- 3:ncol(transcript_counts_table)
-
-        a <- Sys.time()
+        
+        pb <- progress::progress_bar$new(
+            format = "  Processing genes [:bar] :current/:total (:percent), eta: :eta , elapsed: :elapsed",
+            total = length(names(collapsed_list)), clear = FALSE, width = 100)
+        pb$tick(0)
+        
         for (i in 1:length(names(collapsed_list))) {
-            if (i %% 1000 == 0) {
-                write(paste0('Collapsing isoforms for gene ', i, ' / ', length(names(collapsed_list)),
-                             ' (', round(i/length(names(collapsed_list))*100, 2), '%)'),
-                      stdout())
-            }
-
             gid <- names(collapsed_list)[i]
 
             # Get subset of transcripts that associate with the gene, if there's 2 or more isoforms to collapse and as long as we're not
@@ -245,6 +243,8 @@ filter_counts_table <- function(transcript_counts_table,
             } else if (length(collapsed_list[[gid]]) == table_vec[gid]) {
                 to_remove_indexes <- c(to_remove_indexes, which(transcript_counts_table[[gene_id_colname]] == gid))
             }
+            
+            pb$tick(1)
         }
 
         # Remove rows and finalize output

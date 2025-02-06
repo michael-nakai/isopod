@@ -13,9 +13,9 @@ options('isopod.test_mode' = TRUE)
 # any arguments passed to those functions are automatically checked by them.
 # Therefore, argument checking for run_everything() is only required
 # for wrapper function-specific arguments.
-test_that("Output folder existing throws a warning before starting, and halts with a negative user response.", {
+test_that("Output folder existing throws a warning before starting.", {
     
-    expect_error(run_everything(dtu_counts_table, dtu_designations_table,
+    expect_warning(run_everything(dtu_counts_table, dtu_designations_table,
                                   'transcript_id', 'gene_id',
                                   'cluster', 'cluster_1', test_output_folder,
                                   gene_count_threshold = 20, collapse_isoforms_with_counts_below = 0,

@@ -27,7 +27,8 @@ Imports:
     data.table,
     doParallel,
     magrittr,
-    checkmate
+    checkmate,
+    umap
 Suggests:
     knitr,
     rmarkdown,

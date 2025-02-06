@@ -19,7 +19,6 @@
 #'                            'Cells' = c('Cell_1', 'Cell_2', 'Cell_3'))
 #' proportion_tables <- generate_prop_tables(counts_table, labels_table, 
 #'                                           'transcript_id', gene_id', 'grouping')
-#' @export
 
 
 generate_prop_tables <- function(transcript_counts_table, cell_labels_table,
