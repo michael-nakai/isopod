@@ -82,6 +82,7 @@ make_plots <- function(transcript_counts_table, cell_labels_table,
     # Generate UMAPs
     if (generate_UMAPs) {
         
+        
         if (!is.na(save_to_folder)) {
             dir.create(file.path(plot_data_folder, 'UMAPs'), showWarnings = FALSE)
         }
