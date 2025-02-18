@@ -5,29 +5,49 @@
 \title{Make and save DIU plots}
 \usage{
 make_plots(
-  proportions_tables,
-  pvalue_object,
+  transcript_counts_table,
+  cell_labels_table,
   transcript_id_colname,
-  save_plots = NA,
-  save_tables = NA
+  gene_id_colname,
+  cell_labels_colname,
+  pvalue_object,
+  gene_of_interest = NA,
+  generate_UMAPs = TRUE,
+  save_to_folder = NA
 )
 }
 \arguments{
-\item{proportions_tables}{The list of dataframes created using generate_prop_tables().}
+\item{transcript_counts_table}{A dataframe with a column containing transcript IDs, a column with gene IDs for
+each transcript, and counts for all transcripts in all cells, with cell IDs as subsequent column names.}
 
-\item{pvalue_object}{The p-value object created from get_permutation_pvals().}
+\item{cell_labels_table}{A dataframe with two columns: one listing all cell IDs, and the other listing the group
+that the cell ID belongs to.}
 
-\item{transcript_id_colname}{A string corresponding to the column name in transcript_counts_table where the transcript IDs are stored.}
+\item{transcript_id_colname}{A string corresponding to the column name in transcript_counts_table where the
+transcript IDs are stored.}
 
-\item{save_plots}{Default NA. If specified, the path to the directory that plots should be saved in.}
+\item{gene_id_colname}{A string corresponding to the column name in transcript_counts_table where the gene IDs are
+stored. Defaults to 'gene_id'.}
 
-\item{save_tables}{Default NA. If specified, the path to the directory that the tables used to make the plots
-should be saved in. Useful if you'd like to recreate the plots yourself or in another program.}
+\item{cell_labels_colname}{A string corresponding to the column name in cell_labels_table where the group information
+is stored. Defaults to 'group'.}
+
+\item{pvalue_object}{The p-value object created from \code{get_permutation_pvals}.}
+
+\item{gene_of_interest}{The name of a gene of interest to create additional plots for. If set, proportion UMAPs
+and transcript proportion plots are created for the gene. Defaults to NA.}
+
+\item{generate_UMAPs}{A bool determining whether UMAPs should be calculated/plotted. UMAP generation can take
+a while for larger datasets, so the option is provided to skip this step if computational resources are limited.
+Default TRUE.}
+
+\item{save_to_folder}{A string corresponding to the filepath to the folder that all outputs will be saved to.
+Defaults to NA.}
 }
 \value{
-A list containing two further lists. The first is a list of ggplot objects, each corresponding to a plot for a cell grouping.
-The second contains the
+A list containing the plots generated, as well as the data used to create these plots.
 }
 \description{
-Creates a differential isoform usage plot for each group.
+A wrapper function around multiple plotting functions.
+First runs \code{generate_prop_tables}, then creates DTU plots, proportion plots, and UMAPs.
 }

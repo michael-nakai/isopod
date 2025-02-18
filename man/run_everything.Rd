@@ -17,7 +17,7 @@ run_everything(
   permutations = 10000,
   cores = 0,
   do_gene_level_comparisons = TRUE,
-  disable_overwrite_warning = FALSE
+  generate_UMAPs = TRUE
 )
 }
 \arguments{
@@ -28,19 +28,19 @@ the column names for all columns containing these counts.}
 \item{cell_labels_table}{A dataframe with two columns: one with all cell IDs, and the other with the group
 that each cell ID belongs to.}
 
-\item{transcript_id_colname}{A string corresponding to the column name in \code{transcript_counts_table} where the transcript IDs are stored.}
+\item{transcript_id_colname}{A string corresponding to the column name in transcript_counts_table where the transcript IDs are stored.}
 
-\item{gene_id_colname}{A string corresponding to the column name in \code{transcript_counts_table} where the gene IDs are stored.}
+\item{gene_id_colname}{A string corresponding to the column name in transcript_counts_table where the gene IDs are stored.}
 
-\item{cell_labels_colname}{A string corresponding to the column name in \code{cell_labels_table} where the group information is stored.}
+\item{cell_labels_colname}{A string corresponding to the column name in cell_labels_table where the group information is stored.}
 
 \item{cell_group_to_analyse}{A string corresponding to the cell group to compare against the rest of the dataset. This should be a cell group
-in \code{cell_labels_table}.}
+in cell_labels_table.}
 
 \item{output_folder}{A filepath to an output folder where data will be saved. If the folder doesn't exist, Isopod will attempt to create it.}
 
 \item{gene_count_threshold}{An integer. If the total counts for all transcripts in a gene is below this number, the transcripts will be filtered
-out of the table. Defaults to \code{20}.}
+out of the table. Defaults to 20.}
 
 \item{collapse_isoforms_with_counts_below}{An integer. If set to an integer higher than 1, isoforms within a gene that have n total counts or less will
 be collapsed together at a per-cell basis. This collapsing step is useful for reducing significant isoforms with very low counts, which may be biologically
@@ -53,17 +53,17 @@ is performed on the original set of data, and label shuffling occurs from permut
 \item{cores}{An integer representing the number of cores that the function should attempt to use. If left undefined, set to 0, or set
 to more cores than are available, defaults to all available cores.}
 
-\item{do_gene_level_comparisons}{A boolean. If \code{TRUE}, also runs a permutation analysis on gene level differences.
+\item{do_gene_level_comparisons}{A boolean. If TRUE, also runs a permutation analysis on gene level differences.
 A significant value indicates that there is a difference in transcript proportions visible at the gene level, but does not specify
 which transcripts show the change within the gene. Enabling this also allows for other automatic calculations such
-as odds-ratio calculations. Defaults to \code{TRUE}.}
+as odds-ratio calculations. Defaults to TRUE.}
 
-\item{disable_overwrite_warning}{A boolean. Disables asking for user input if the output folder already exists, as
-running this function will overwrite the previous run's results. If running run_everything() within a pipeline, this should be
-set to \code{FALSE} to allow for inputless execution. Defaults to \code{TRUE}.}
+\item{generate_UMAPs}{A boolean. Determines whether a UMAP should be calculated and plotted from the
+provided data. UMAP calculation can be somewhat computationally expensive, and therefore may be disabled if needed.
+Defaults to \code{TRUE}.}
 }
 \value{
-The output of \code{get_permutation_pvals()}.
+A list containing the output of \code{get_permutation_pvals()} and \code{make_plots()}.
 }
 \description{
 Runs all functions needed to analyse differential isoform usage, and returns outputs in a list.
@@ -74,7 +74,11 @@ runs all groups against the rest of the dataset. For comparing two specific grou
 single group against the rest of the dataset, run \code{get_permutation_pvals()} separately.
 }
 \examples{
-counts_table <- data.frame('transcript_id' = c(1, 2, 3), 'gene_id' = c(1, 1, 2), 'Cell_1' = c(0, 1, 10), 'Cell_2' = c(10, 2, 5), 'Cell_3' = c(2, 5, 1))
-labels_table <- data.frame('grouping' = c('Cluster_1', 'Cluster_2', 'Cluster 1'), 'Cells' = c('Cell_1', 'Cell_2', 'Cell_3'))
-results <- run_everything(counts_table, labels_table, 'transcript_id', 'gene_id', 'grouping', output_folder = 'output_folder')
+counts_table <- data.frame('transcript_id' = c(1, 2, 3), 'gene_id' = c(1, 1, 2), 
+                           'Cell_1' = c(0, 1, 10), 'Cell_2' = c(10, 2, 5), 
+                           'Cell_3' = c(2, 5, 1))
+labels_table <- data.frame('grouping' = c('Cluster_1', 'Cluster_2', 'Cluster 1'), 
+                           'Cells' = c('Cell_1', 'Cell_2', 'Cell_3'))
+results <- run_everything(counts_table, labels_table, 'transcript_id', 'gene_id', 
+                          'grouping', output_folder = 'output_folder')
 }

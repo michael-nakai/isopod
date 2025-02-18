@@ -94,11 +94,16 @@ between each permutation.
 }
 \examples{
 # Note that transcript and gene IDs can be character strings instead of numbers.
-counts_table <- data.frame('transcript_id' = c(1, 2, 3), 'gene_id' = c(1, 1, 2), 'Cell_1' = c(0, 1, 10), 'Cell_2' = c(10, 2, 5), 'Cell_3' = c(2, 5, 1))
-labels_table <- data.frame('grouping' = c('Cluster_1', 'Cluster_2', 'Cluster 1'), 'Cells' = c('Cell_1', 'Cell_2', 'Cell_3'))
-# 10 permutations are used as an example, but you should always use AT LEAST 10000 permutations to get reliable results.
-permutation_results <- get_permutation_pvals(counts_table, labels_table, 'transcript_id', 'gene_id', 'grouping',
-                                             run_on_all_groups = TRUE, permutations = 10, cores = 1,
-                                             do_gene_level_comparisons = TRUE, return_detailed_pvalue_tables = FALSE,
+counts_table <- data.frame('transcript_id' = c(1, 2, 3), 'gene_id' = c(1, 1, 2), 
+                           'Cell_1' = c(0, 1, 10), 'Cell_2' = c(10, 2, 5), 'Cell_3' = c(2, 5, 1))
+labels_table <- data.frame('grouping' = c('Cluster_1', 'Cluster_2', 'Cluster 1'), 
+                           'Cells' = c('Cell_1', 'Cell_2', 'Cell_3'))
+# 10 permutations are used as an example, but you should always use 
+# AT LEAST 10000 permutations to get reliable results.
+permutation_results <- get_permutation_pvals(counts_table, labels_table, 
+                                             'transcript_id', 'gene_id', 'grouping',
+                                             run_on_all_groups = TRUE, permutations = 10, 
+                                             cores = 1, do_gene_level_comparisons = TRUE, 
+                                             return_detailed_pvalue_tables = FALSE,
                                              report_adjusted_pvalues = TRUE, cutoff = 1)
 }
