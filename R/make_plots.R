@@ -4,7 +4,7 @@
 #' First runs `generate_prop_tables`, then creates DTU plots, proportion plots, and UMAPs.
 #'
 #' @importFrom magrittr %>%
-#' @importFrom rlang {{}}
+#' @importFrom rlang {{
 #' @param transcript_counts_table A dataframe with a column containing transcript IDs, a column with gene IDs for
 #' each transcript, and counts for all transcripts in all cells, with cell IDs as subsequent column names.
 #' @param cell_labels_table A dataframe with two columns: one listing all cell IDs, and the other listing the group
