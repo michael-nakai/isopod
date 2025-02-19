@@ -3,7 +3,6 @@
 #' Makes a set of proportion plots for transcripts within a specified gene.
 #' For use within a plotting wrapper function.
 #'
-#' @importFrom dplyr {{}}
 #' @param prop_table The output of `generate_prop_tables`.
 #' @param gene_of_interest Transcripts belonging to this gene will be plotted.
 #' @param output_folder_gene A path to the folder to save the plots to.
