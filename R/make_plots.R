@@ -4,7 +4,6 @@
 #' First runs `generate_prop_tables`, then creates DTU plots, proportion plots, and UMAPs.
 #'
 #' @importFrom magrittr %>%
-#' @importFrom rlang {{
 #' @param transcript_counts_table A dataframe with a column containing transcript IDs, a column with gene IDs for
 #' each transcript, and counts for all transcripts in all cells, with cell IDs as subsequent column names.
 #' @param cell_labels_table A dataframe with two columns: one listing all cell IDs, and the other listing the group
@@ -217,7 +216,8 @@ make_plots <- function(transcript_counts_table, cell_labels_table,
         pval_to_merge <- pvalue_table %>% dplyr::select(transcript_id)
         pval_to_merge <- cbind(pval_to_merge, pvalue_table[[n]])
         colnames(pval_to_merge) <- c(transcript_id_colname, 'permutation_pval')
-        contingency_to_merge <- contingency_lists[[n]] %>% dplyr::select({{transcript_id_colname}}, isoform_in, isoform_out, other_in, other_out)
+        contingency_to_merge <- contingency_lists[[n]] %>% dplyr::select(isoform_in, isoform_out, other_in, other_out)
+        contingency_to_merge[[transcript_id_colname]] <- contingency_lists[[n]][[transcript_id_colname]]
 
         temp_df <- merge(proportions_tables[[n]], pval_to_merge, by = transcript_id_colname)
         moretemp <-  pvalue_object$`first-loop_pvalues`
