@@ -28,7 +28,8 @@ Imports:
     doParallel,
     magrittr,
     checkmate,
-    umap
+    umap,
+    glue
 Suggests:
     knitr,
     rmarkdown,
