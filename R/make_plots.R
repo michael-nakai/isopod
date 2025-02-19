@@ -213,7 +213,7 @@ make_plots <- function(transcript_counts_table, cell_labels_table,
         cat('\tPlotting transcript usage for', n,'\n')
         contingency_lists <- pvalue_object[['first-loop_contingency_tables']]
         pvalue_table <- pvalue_object[['permutation_pvalues']]
-        pval_to_merge <- pvalue_table %>% dplyr::select({{transcript_id_colname}})
+        pval_to_merge <- pvalue_table %>% dplyr::select(transcript_id)
         pval_to_merge <- cbind(pval_to_merge, pvalue_table[[n]])
         colnames(pval_to_merge) <- c(transcript_id_colname, 'permutation_pval')
         contingency_to_merge <- contingency_lists[[n]] %>% dplyr::select({{transcript_id_colname}}, isoform_in, isoform_out, other_in, other_out)
