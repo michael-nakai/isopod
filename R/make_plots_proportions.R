@@ -10,7 +10,8 @@
 #' are saved with a width and height of 12, at 600 DPI.
 #' @return A list containing a ggplot2 plot objects.
 
-make_plots_proportion <- function(prop_table, gene_of_interest, output_folder_gene, plot_width = 12, plot_height = 12, plot_dpi = 600) {
+make_plots_proportion <- function(prop_table, gene_of_interest, output_folder_gene = NA, 
+                                  plot_width = 12, plot_height = 12, plot_dpi = 600) {
     
     # Check inputs
     # Check that prop_table is a list that includes AT LEAST 2 clusters (2 elements)
@@ -167,18 +168,19 @@ make_plots_proportion <- function(prop_table, gene_of_interest, output_folder_ge
     
     
     # Save all summary plot images
-    cat('\tSaving to folder...\n')
-    ggplot2::ggsave(file.path(output_folder_gene, 'transcript_counts_between_clusters.png'), plotlist$transcript_counts,
-                    device = 'png', width = plot_width, height = plot_height, dpi = plot_dpi, bg = "white")
-    ggplot2::ggsave(file.path(output_folder_gene, 'transcript_proportions.png'), plotlist$transcript_proportions,
-                    device = 'png', width = plot_width, height = plot_height, dpi = plot_dpi, bg = "white")
-    ggplot2::ggsave(file.path(output_folder_gene, 'transcript_proportions_per_cluster_piechart.png'), plotlist$transcript_proportions_alt,
-                    device = 'png', width = plot_width, height = plot_height, dpi = plot_dpi, bg = "white")
-    ggplot2::ggsave(file.path(output_folder_gene, 'transcript_proportions_per_cluster_columns.png'), plotlist$transcript_proportions_alt2,
-                    device = 'png', width = plot_width, height = plot_height, dpi = plot_dpi, bg = "white")
+    if (!is.na(output_folder_gene)) {
+        cat('\tSaving to folder...\n')
+        ggplot2::ggsave(file.path(output_folder_gene, 'transcript_counts_between_clusters.png'), plotlist$transcript_counts,
+                        device = 'png', width = plot_width, height = plot_height, dpi = plot_dpi, bg = "white")
+        ggplot2::ggsave(file.path(output_folder_gene, 'transcript_proportions.png'), plotlist$transcript_proportions,
+                        device = 'png', width = plot_width, height = plot_height, dpi = plot_dpi, bg = "white")
+        ggplot2::ggsave(file.path(output_folder_gene, 'transcript_proportions_per_cluster_piechart.png'), plotlist$transcript_proportions_alt,
+                        device = 'png', width = plot_width, height = plot_height, dpi = plot_dpi, bg = "white")
+        ggplot2::ggsave(file.path(output_folder_gene, 'transcript_proportions_per_cluster_columns.png'), plotlist$transcript_proportions_alt2,
+                        device = 'png', width = plot_width, height = plot_height, dpi = plot_dpi, bg = "white")
+    }
     
     # End
-    cat('\tFinished plotting!\n')
     return(plotlist)
     
 }

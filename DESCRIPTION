@@ -28,7 +28,7 @@ Imports:
     doParallel,
     magrittr,
     checkmate,
-    umap,
+    uwot,
     glue
 Suggests:
     knitr,

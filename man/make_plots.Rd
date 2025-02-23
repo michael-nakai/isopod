@@ -12,6 +12,7 @@ make_plots(
   cell_labels_colname,
   pvalue_object,
   gene_of_interest = NA,
+  pval_cutoff = 0.05,
   generate_UMAPs = TRUE,
   save_to_folder = NA
 )
@@ -36,6 +37,8 @@ is stored. Defaults to 'group'.}
 
 \item{gene_of_interest}{The name of a gene of interest to create additional plots for. If set, proportion UMAPs
 and transcript proportion plots are created for the gene. Defaults to NA.}
+
+\item{pval_cutoff}{The p-value threshold for determining significance. Defaults to 0.05}
 
 \item{generate_UMAPs}{A bool determining whether UMAPs should be calculated/plotted. UMAP generation can take
 a while for larger datasets, so the option is provided to skip this step if computational resources are limited.

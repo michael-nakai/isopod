@@ -19,6 +19,7 @@
 #' transcript IDs are stored.
 #' @param gene_of_interest The name of a gene of interest to create additional plots for. If set, proportion UMAPs
 #' and transcript proportion plots are created for the gene. Defaults to NA.
+#' @param pval_cutoff The p-value threshold for determining significance. Defaults to 0.05
 #' @param generate_UMAPs A bool determining whether UMAPs should be calculated/plotted. UMAP generation can take 
 #' a while for larger datasets, so the option is provided to skip this step if computational resources are limited.
 #' Default TRUE.
@@ -30,7 +31,7 @@
 make_plots <- function(transcript_counts_table, cell_labels_table,
                        transcript_id_colname, gene_id_colname,
                        cell_labels_colname, pvalue_object, 
-                       gene_of_interest = NA,
+                       gene_of_interest = NA, pval_cutoff = 0.05,
                        generate_UMAPs = TRUE, save_to_folder = NA) {
     
     # Output structure should be within whatever folder is specified.
@@ -94,8 +95,8 @@ make_plots <- function(transcript_counts_table, cell_labels_table,
         cell_id_vec <- rownames(cells_by_transcripts)
         rownames(cells_by_transcripts) <- NULL
         cells_by_transcripts <- as.matrix(cells_by_transcripts)
-        umap_tab <- umap::umap(cells_by_transcripts)
-        umap_coords <- as.data.frame(umap_tab$layout)
+        umap_tab <- uwot::umap(cells_by_transcripts)
+        umap_coords <- as.data.frame(umap_tab)
         colnames(umap_coords) <- c('x', 'y')
         umap_coords$cell_id <- cell_id_vec
         cell_id_colname <- colnames(cell_labels_table)[colnames(cell_labels_table) != cell_labels_colname]
@@ -200,6 +201,13 @@ make_plots <- function(transcript_counts_table, cell_labels_table,
                 ggplot2::ggsave(file.path(plot_images_folder_gene, 'UMAP_tx_cell_props.png'), propplot_all,
                                 device = 'png', width = 14, height = 14, dpi = 600, bg = "white")
             }
+            
+            if (!is.na(save_to_folder)) {
+                transcript_proportions_plots <- make_plots_proportion(proportions_tables, gene_of_interest, plot_images_folder_gene)
+            } else {
+                transcript_proportions_plots <- make_plots_proportion(proportions_tables, gene_of_interest)
+            }
+            
         }
     }
     
@@ -221,6 +229,7 @@ make_plots <- function(transcript_counts_table, cell_labels_table,
 
         temp_df <- merge(proportions_tables[[n]], pval_to_merge, by = transcript_id_colname)
         moretemp <-  pvalue_object$`first-loop_pvalues`
+        moretemp <- dplyr::filter(transcript_id %in% temp_df$transcript_id)
         moretemp <- moretemp[ order(match(moretemp[[transcript_id_colname]], temp_df[[transcript_id_colname]])), ]
         temp_df$firstloop_pval <- moretemp[[n]]
         contingency_to_merge <- merge(temp_df, contingency_to_merge, by = transcript_id_colname)
@@ -233,8 +242,8 @@ make_plots <- function(transcript_counts_table, cell_labels_table,
         pval_sig <- rep(NA, nrow(temp_df))
         i <- 1
         for (v in temp_df$permutation_pval) {
-            if (v < 0.05) {
-                pval_sig[i] <- 'p < 0.05'
+            if (v < pval_cutoff) {
+                pval_sig[i] <- paste0('p < ', pval_cutoff)
             } else {
                 pval_sig[i] <- 'Not significant'
             }
@@ -244,7 +253,10 @@ make_plots <- function(transcript_counts_table, cell_labels_table,
 
         grapht <- paste0(n, ' transcript usage, significant transcripts highlighted')
 
-        plot_list[[n]] <- ggplot2::ggplot(data = temp_df %>% dplyr::arrange(desc(permutation_pval)), mapping = ggplot2::aes_string(x = 'total_gene_count', y = 'difference_in_proportions', color = 'pval_significance_perm')) +
+        plot_list[[n]] <- ggplot2::ggplot(data = temp_df %>% dplyr::arrange(desc(permutation_pval)), 
+                                          mapping = ggplot2::aes_string(x = 'total_gene_count', 
+                                                                        y = 'difference_in_proportions', 
+                                                                        color = 'pval_significance_perm')) +
             ggplot2::geom_point() +
             ggplot2::labs(x = 'Total counts within gene',
                           y = paste0('Difference in proportions for cluster ', n, ' (cluster - average)')) + # Because this is inverted, higher = more proportion in cluster compared to in all cells
@@ -266,6 +278,7 @@ make_plots <- function(transcript_counts_table, cell_labels_table,
     }
     
     master_plot_list$proportion_differences <- plot_list
+    master_plot_list$transcript_proportions <- transcript_proportions_plots
     master_table_list$proportion_differences <- table_list
 
     return(list('plots' = master_plot_list, 'tables' = master_table_list))
