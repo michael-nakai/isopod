@@ -229,7 +229,7 @@ make_plots <- function(transcript_counts_table, cell_labels_table,
 
         temp_df <- merge(proportions_tables[[n]], pval_to_merge, by = transcript_id_colname)
         moretemp <-  pvalue_object$`first-loop_pvalues`
-        moretemp <- dplyr::filter(transcript_id %in% temp_df$transcript_id)
+        moretemp <- moretemp %>% dplyr::filter(transcript_id %in% temp_df$transcript_id)
         moretemp <- moretemp[ order(match(moretemp[[transcript_id_colname]], temp_df[[transcript_id_colname]])), ]
         temp_df$firstloop_pval <- moretemp[[n]]
         contingency_to_merge <- merge(temp_df, contingency_to_merge, by = transcript_id_colname)
