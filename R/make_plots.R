@@ -277,8 +277,11 @@ make_plots <- function(transcript_counts_table, cell_labels_table,
         }
     }
     
+    # Throw into object
+    if (!is.na(gene_of_interest)) {
+        master_plot_list$transcript_proportions <- transcript_proportions_plots
+    }
     master_plot_list$proportion_differences <- plot_list
-    master_plot_list$transcript_proportions <- transcript_proportions_plots
     master_table_list$proportion_differences <- table_list
 
     return(list('plots' = master_plot_list, 'tables' = master_table_list))
