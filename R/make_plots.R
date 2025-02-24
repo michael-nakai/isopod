@@ -95,8 +95,8 @@ make_plots <- function(transcript_counts_table, cell_labels_table,
         cell_id_vec <- rownames(cells_by_transcripts)
         rownames(cells_by_transcripts) <- NULL
         cells_by_transcripts <- as.matrix(cells_by_transcripts)
-        umap_tab <- uwot::umap(cells_by_transcripts)
-        umap_coords <- as.data.frame(umap_tab)
+        umap_tab <- umap::umap(cells_by_transcripts)
+        umap_coords <- as.data.frame(umap_tab$layout)
         colnames(umap_coords) <- c('x', 'y')
         umap_coords$cell_id <- cell_id_vec
         cell_id_colname <- colnames(cell_labels_table)[colnames(cell_labels_table) != cell_labels_colname]
