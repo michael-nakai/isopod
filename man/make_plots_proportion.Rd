@@ -7,7 +7,7 @@
 make_plots_proportion(
   prop_table,
   gene_of_interest,
-  output_folder_gene,
+  output_folder_gene = NA,
   plot_width = 12,
   plot_height = 12,
   plot_dpi = 600

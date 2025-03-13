@@ -18,7 +18,8 @@ get_permutation_pvals(
   do_gene_level_comparisons = TRUE,
   return_detailed_pvalue_tables = FALSE,
   report_adjusted_pvalues = TRUE,
-  cutoff = 0.1
+  cutoff = 0.1,
+  log_contingency_table = FALSE
 )
 }
 \arguments{
@@ -67,6 +68,9 @@ be reported in a separate table.}
 \item{cutoff}{A \code{double} (decimal) indicating the initial p-value cutoff that isoforms (and genes if gene-level comparison is enabled) must pass to be included
 in subsequent permutations. This cutoff applies for the first permutation only, and potentially increases the speed of each permutation by filtering down
 data before calculations begin. With higher cutoffs, less data is filtered. To disable filtering, set the cutoff to 1. Defaults to \code{0.1}.}
+
+\item{log_contingency_table}{A logical indicating whether the 2x2 contingency table should be log2 transformed before p-value calculations.
+Applies to all permutations. Default \code{FALSE}.}
 }
 \value{
 A \code{list} containing:
