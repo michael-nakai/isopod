@@ -450,13 +450,13 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
             tempresultsgene <- foreach::foreach (iter = 1:length(clusters), .multicombine = T, .packages = c('parallel')) %dopar% {
 
                 cluster_name <- clusters[iter]
-
-                vec_in <- lapply(split(calc_list_gene[[cluster_name]][["isoform_in"]], calc_list_gene[[cluster_name]][["gene_id"]]), FUN = function(x) c(x) + newconst)
-                vec_out <- lapply(split(calc_list_gene[[cluster_name]][["isoform_out"]], calc_list_gene[[cluster_name]][["gene_id"]]), FUN = function(x) c(x) + newconst)
                 
                 if (log_contingency_table) {
-                    vec_in <- log2(vec_in)
-                    vec_out <- log2(vec_out)
+                    vec_in <- lapply(split(calc_list_gene[[cluster_name]][["isoform_in"]], calc_list_gene[[cluster_name]][["gene_id"]]), FUN = function(x) {log2(c(x) + newconst)})
+                    vec_out <- lapply(split(calc_list_gene[[cluster_name]][["isoform_out"]], calc_list_gene[[cluster_name]][["gene_id"]]), FUN = function(x) {log2(c(x) + newconst)})
+                } else {
+                    vec_in <- lapply(split(calc_list_gene[[cluster_name]][["isoform_in"]], calc_list_gene[[cluster_name]][["gene_id"]]), FUN = function(x) c(x) + newconst)
+                    vec_out <- lapply(split(calc_list_gene[[cluster_name]][["isoform_out"]], calc_list_gene[[cluster_name]][["gene_id"]]), FUN = function(x) c(x) + newconst)
                 }
                 
                 pval_vector <- parallel::mcmapply(chisq.slim.gene.test,
