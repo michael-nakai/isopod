@@ -40,6 +40,8 @@
 #' @param cutoff A `double` (decimal) indicating the initial p-value cutoff that isoforms (and genes if gene-level comparison is enabled) must pass to be included
 #' in subsequent permutations. This cutoff applies for the first permutation only, and potentially increases the speed of each permutation by filtering down
 #' data before calculations begin. With higher cutoffs, less data is filtered. To disable filtering, set the cutoff to 1. Defaults to `0.1`.
+#' @param log_contingency_table A logical indicating whether the 2x2 contingency table should be log2 transformed before p-value calculations.
+#' Applies to all permutations. Default `FALSE`.
 #' @return A `list` containing:
 #' - `permutation_pvalues`: A dataframe of permutation p-values.
 #' - `first-loop_pvalues`: A dataframe of the first-loop chi-squared p-values.
@@ -80,7 +82,7 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
                                   run_on_all_groups = FALSE, permutations = 10000,
                                   cores = 0, do_gene_level_comparisons = TRUE,
                                   return_detailed_pvalue_tables = FALSE, report_adjusted_pvalues = TRUE,
-                                  cutoff = 0.1) {
+                                  cutoff = 0.1, log_contingency_table = FALSE) {
     
     
     ### Basic inputs check
@@ -448,7 +450,12 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
 
                 vec_in <- lapply(split(calc_list_gene[[cluster_name]][["isoform_in"]], calc_list_gene[[cluster_name]][["gene_id"]]), FUN = function(x) c(x) + newconst)
                 vec_out <- lapply(split(calc_list_gene[[cluster_name]][["isoform_out"]], calc_list_gene[[cluster_name]][["gene_id"]]), FUN = function(x) c(x) + newconst)
-
+                
+                if (log_contingency_table) {
+                    vec_in <- log2(vec_in)
+                    vec_out <- log2(vec_out)
+                }
+                
                 pval_vector <- parallel::mcmapply(chisq.slim.gene.test,
                                                   vec_in,
                                                   vec_out,
@@ -525,13 +532,22 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
         tempresults <- foreach::foreach (iter = 1:length(clusters), .multicombine = T, .packages = c('parallel')) %dopar% {
 
             cluster_name <- clusters[iter]
-
-            pval_vector <-  parallel::mcmapply(chisq.slim.test,
-                                               calc_list[[cluster_name]][['isoform_in']] + newconst,
-                                               calc_list[[cluster_name]][['isoform_out']] + newconst,
-                                               calc_list[[cluster_name]][['other_in']] + newconst,
-                                               calc_list[[cluster_name]][['other_out']] + newconst,
-                                               mc.cores = mcmapply_reserved_cores)
+            
+            if (log_contingency_table) {
+                pval_vector <-  parallel::mcmapply(chisq.slim.test,
+                                                   log2(calc_list[[cluster_name]][['isoform_in']] + newconst),
+                                                   log2(calc_list[[cluster_name]][['isoform_out']] + newconst),
+                                                   log2(calc_list[[cluster_name]][['other_in']] + newconst),
+                                                   log2(calc_list[[cluster_name]][['other_out']] + newconst),
+                                                   mc.cores = mcmapply_reserved_cores)
+            } else {
+                pval_vector <-  parallel::mcmapply(chisq.slim.test,
+                                                   calc_list[[cluster_name]][['isoform_in']] + newconst,
+                                                   calc_list[[cluster_name]][['isoform_out']] + newconst,
+                                                   calc_list[[cluster_name]][['other_in']] + newconst,
+                                                   calc_list[[cluster_name]][['other_out']] + newconst,
+                                                   mc.cores = mcmapply_reserved_cores)
+            }
 
             pval_vector <- round(pval_vector, digits = 10)
             pval_table <- as.data.frame(matrix(NA, nrow = length(pval_vector), ncol = 3))
