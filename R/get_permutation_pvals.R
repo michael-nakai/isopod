@@ -254,6 +254,9 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
 
     # INTERNAL SETTINGS
     newconst <- 0.1
+    if (log_contingency_table) {
+        newconst <- 1.001
+    }
 
     full_ids <- filtered_tcount %>% dplyr::select({{transcript_id_colname}}, {{gene_id_colname}})
     colnames(full_ids) <- c('transcript_id', 'gene_id')
