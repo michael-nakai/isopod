@@ -42,6 +42,7 @@
 #' data before calculations begin. With higher cutoffs, less data is filtered. To disable filtering, set the cutoff to 1. Defaults to `0.1`.
 #' @param log_contingency_table A logical indicating whether the 2x2 contingency table should be log2 transformed before p-value calculations.
 #' Applies to all permutations. Default `FALSE`.
+#' @param verbose A logical indicating whether additional logging should be outputted to stdout. Default `FALSE`.
 #' @return A `list` containing:
 #' - `permutation_pvalues`: A dataframe of permutation p-values.
 #' - `first-loop_pvalues`: A dataframe of the first-loop chi-squared p-values.
@@ -82,7 +83,8 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
                                   run_on_all_groups = FALSE, permutations = 10000,
                                   cores = 0, do_gene_level_comparisons = TRUE,
                                   return_detailed_pvalue_tables = FALSE, report_adjusted_pvalues = TRUE,
-                                  cutoff = 0.1, log_contingency_table = FALSE) {
+                                  cutoff = 0.1, log_contingency_table = FALSE,
+                                  verbose = FALSE) {
     
     
     ### Basic inputs check
@@ -152,7 +154,6 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
         sr <- rowSums(x)
         sc <- colSums(x)
         E <- outer(sr, sc, "*") / n
-
         YATES <- min(0.5, abs(x-E))
 
         STATISTIC <- sum((abs(x - E) - YATES)^2 / E)
@@ -360,7 +361,11 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
 
     # Main permutation loop
     for (loopnum in 1:permutations) {
-
+        
+        if (verbose) {
+            cat('Starting loop', loopnum, '\n')
+        }
+        
         # If we're on cycle 2+, then scramble the grouping column in designations
         if (loopnum != 1) {
             designations[[cell_labels_colname]] <- sample(designations[[cell_labels_colname]])
@@ -372,7 +377,6 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
         # DF implementation
         # For a 1v1 implementation, only 2 clusters are calculated.
         # For a 1vrest, only 1 cluster is calculated, then counts of all others can be calculated by total - cluster
-        # Note (2025-01-11): Fixed a 1v1 implementation bug that caused all groups to be considered for cells_in_cluster in 1v1 mode
         cluster_counts_list <- list()
         if (runmode == '1v1') {
             clusters <- c(analysis_group_1, analysis_group_2)
@@ -451,12 +455,12 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
 
                 cluster_name <- clusters[iter]
                 
+                vec_in <- lapply(split(calc_list_gene[[cluster_name]][["isoform_in"]], calc_list_gene[[cluster_name]][["gene_id"]]), FUN = function(x) {c(x) + newconst})
+                vec_out <- lapply(split(calc_list_gene[[cluster_name]][["isoform_out"]], calc_list_gene[[cluster_name]][["gene_id"]]), FUN = function(x) {c(x) + newconst})
+                
                 if (log_contingency_table) {
-                    vec_in <- lapply(split(calc_list_gene[[cluster_name]][["isoform_in"]], calc_list_gene[[cluster_name]][["gene_id"]]), FUN = function(x) {log2(c(x) + newconst)})
-                    vec_out <- lapply(split(calc_list_gene[[cluster_name]][["isoform_out"]], calc_list_gene[[cluster_name]][["gene_id"]]), FUN = function(x) {log2(c(x) + newconst)})
-                } else {
-                    vec_in <- lapply(split(calc_list_gene[[cluster_name]][["isoform_in"]], calc_list_gene[[cluster_name]][["gene_id"]]), FUN = function(x) c(x) + newconst)
-                    vec_out <- lapply(split(calc_list_gene[[cluster_name]][["isoform_out"]], calc_list_gene[[cluster_name]][["gene_id"]]), FUN = function(x) c(x) + newconst)
+                    vec_in <- lapply(vec_in, FUN = log2)
+                    vec_out <- lapply(vec_out, FUN = log2)
                 }
                 
                 pval_vector <- parallel::mcmapply(chisq.slim.gene.test,
@@ -551,6 +555,8 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
                                                    calc_list[[cluster_name]][['other_out']] + newconst,
                                                    mc.cores = mcmapply_reserved_cores)
             }
+            
+            
 
             pval_vector <- round(pval_vector, digits = 10)
             pval_table <- as.data.frame(matrix(NA, nrow = length(pval_vector), ncol = 3))
@@ -734,7 +740,7 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
             gid_idx <- which(permutation_pvals_gene$gene_id %in% pvalue_storage_gene$`2`[[clusters[1]]][['gene_id']])
             final_pvals <- (gene_pval_count[[cluster]] + 1) / (permutations)
             to_insert <- rep(NA, nrow(permutation_pvals_gene))
-            for (i in 1:length(tid_idx)) {
+            for (i in 1:length(gid_idx)) {
                 to_insert[gid_idx[i]] <- final_pvals[i]
             }
             permutation_pvals_gene[[cluster]] <- to_insert
