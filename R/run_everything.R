@@ -35,6 +35,8 @@
 #' @param generate_UMAPs A boolean. Determines whether a UMAP should be calculated and plotted from the 
 #' provided data. UMAP calculation can be somewhat computationally expensive, and therefore may be disabled if needed.
 #' Defaults to `TRUE`.
+#' @param verbose A boolean. Outputs verbose logging in the permutation function. Useful for cluster environments, where
+#' the normal output might not be correctly captured in stdout.
 #' @return A list containing the output of `get_permutation_pvals()` and `make_plots()`.
 #' @examples
 #' counts_table <- data.frame('transcript_id' = c(1, 2, 3), 'gene_id' = c(1, 1, 2), 
@@ -52,7 +54,8 @@ run_everything <- function(transcript_counts_table, cell_labels_table,
                            cell_labels_colname, cell_group_to_analyse, output_folder,
                            gene_count_threshold = 20, collapse_isoforms_with_counts_below = 6,
                            permutations = 10000, cores = 0,
-                           do_gene_level_comparisons = TRUE, generate_UMAPs = TRUE) {
+                           do_gene_level_comparisons = TRUE, generate_UMAPs = TRUE,
+                           verbose = FALSE) {
 
 
     # Quick check/trim of output folder string
@@ -100,7 +103,8 @@ run_everything <- function(transcript_counts_table, cell_labels_table,
                                                      analysis_group_1 = cell_group_to_analyse,
                                                      permutations = permutations,
                                                      cores = cores,
-                                                     do_gene_level_comparisons = do_gene_level_comparisons)
+                                                     do_gene_level_comparisons = do_gene_level_comparisons,
+                                                     verbose = verbose)
 
     cat('\n4. Saving permutation results to', output_folder, '\n\n')
     saveRDS(permutation_pval_object, file.path(output_folder, 'permutation_results.rds'))

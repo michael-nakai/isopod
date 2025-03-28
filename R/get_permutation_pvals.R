@@ -555,8 +555,6 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
                                                    calc_list[[cluster_name]][['other_out']] + newconst,
                                                    mc.cores = mcmapply_reserved_cores)
             }
-            
-            
 
             pval_vector <- round(pval_vector, digits = 10)
             pval_table <- as.data.frame(matrix(NA, nrow = length(pval_vector), ncol = 3))
