@@ -258,6 +258,17 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
     if (log_contingency_table) {
         newconst <- 1.001
     }
+    
+    # Figure out which column in designations has the grouping labels, and which has the cell labels
+    cell_barcodes_col <- ifelse(colnames(designations)[1] == cell_labels_colname, 2, 1)
+    
+    # The fix.
+    if (runmode == '1v1') {
+        designations <- designations[designations[[cell_labels_colname]] %in% c(analysis_group_1, analysis_group_2), ]
+        filtered_tcount <- filtered_tcount[, colnames(filtered_tcount) %in% c(transcript_id_colname, 
+                                                                              gene_id_colname, 
+                                                                              designations[[cell_barcodes_col]])]
+    }
 
     full_ids <- filtered_tcount %>% dplyr::select({{transcript_id_colname}}, {{gene_id_colname}})
     colnames(full_ids) <- c('transcript_id', 'gene_id')
@@ -277,9 +288,6 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
     } else {
         clusters <- c(analysis_group_1)
     }
-
-    # Figure out which column in designations has the grouping labels, and which has the cell labels
-    cell_barcodes_col <- ifelse(colnames(designations)[1] == cell_labels_colname, 2, 1)
 
     # Initialize pvalue_storage_new so you don't have to do it in the loop
     # Only make the first loop's storage though, since we cut down the isoforms in loops 2+
@@ -765,7 +773,8 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
     ortab <- full_ids
     for (cluster in clusters) {
         temptab <- calc_list_for_later[[cluster]]
-        ortab[[cluster]] <- ((temptab$isoform_in + newconst) * (temptab$other_out + newconst)) / ((temptab$isoform_out + newconst) * (temptab$other_in + newconst))
+        ortab[[cluster]] <- ((temptab$isoform_in + newconst) * (temptab$other_out + newconst)) / 
+            ((temptab$isoform_out + newconst) * (temptab$other_in + newconst))
     }
 
 
@@ -793,24 +802,22 @@ get_permutation_pvals <- function(transcript_counts_table, cell_labels_table,
         permutation_pvals[[cluster]] <- ifelse(is.na(permutation_pvals[[cluster]]), 1, permutation_pvals[[cluster]])
 
         if (report_adjusted_pvalues) {
+            
+            # If report_adjusted_pvalues, then adjust them here and keep a copy of the raw pval tables.
+            # FDR-adjust p-values here if adjust is true
+            permutation_pvals_noadjust <- permutation_pvals
+            initial_pvals_noadjust <- initial_pvals_table
+            
             permutation_pvals[[cluster]] <- p.adjust(permutation_pvals[[cluster]], method = 'fdr')
             initial_pvals_table[[cluster]] <- p.adjust(initial_pvals_table[[cluster]], method = 'fdr')
 
             if (do_gene_level_comparisons) {
+                permutation_pvals_gene_noadjust <- permutation_pvals_gene
+                initial_pvals_gene_noadjust <- initial_pvals_table_gene
                 permutation_pvals_gene[[cluster]] <- p.adjust(permutation_pvals_gene[[cluster]], method = 'fdr')
                 initial_pvals_table_gene[[cluster]] <- p.adjust(initial_pvals_table_gene[[cluster]], method = 'fdr')
             }
         }
-    }
-
-    # Replace NAs with p=1 here, and keep a list of transcript_ids and gene_ids kept
-    # If report_adjusted_pvalues, then adjust them here and keep a copy of the raw pval tables.
-    # FDR-adjust p-values here if adjust is true
-    if (report_adjusted_pvalues) {
-        permutation_pvals_noadjust <- permutation_pvals
-        permutation_pvals_gene_noadjust <- permutation_pvals_gene
-        initial_pvals_noadjust <- initial_pvals_table
-        initial_pvals_gene_noadjust <- initial_pvals_table_gene
     }
 
     to_return <- list('permutation_pvalues' = permutation_pvals, 'first-loop_pvalues' = initial_pvals_table,
