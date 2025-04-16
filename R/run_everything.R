@@ -28,6 +28,8 @@
 #' is performed on the original set of data, and label shuffling occurs from permutation 2 and onwards.
 #' @param cores An integer representing the number of cores that the function should attempt to use. If left undefined, set to 0, or set
 #' to more cores than are available, defaults to all available cores.
+#' @param run_on_all_groups A boolean. If TRUE, ignores the cell_group_to_analyse argument and runs every group in a
+#' 1 vs rest fashion. This can take a long time for large datasets, so should normally be FALSE. Defaults to FALSE.
 #' @param do_gene_level_comparisons A boolean. If TRUE, also runs a permutation analysis on gene level differences.
 #' A significant value indicates that there is a difference in transcript proportions visible at the gene level, but does not specify
 #' which transcripts show the change within the gene. Enabling this also allows for other automatic calculations such
@@ -51,13 +53,18 @@
 
 run_everything <- function(transcript_counts_table, cell_labels_table,
                            transcript_id_colname, gene_id_colname,
-                           cell_labels_colname, cell_group_to_analyse, output_folder,
+                           cell_labels_colname, cell_group_to_analyse = NA, output_folder,
                            gene_count_threshold = 20, collapse_isoforms_with_counts_below = 6,
-                           permutations = 10000, cores = 0,
+                           permutations = 10000, cores = 0, run_on_all_groups = FALSE,
                            do_gene_level_comparisons = TRUE, generate_UMAPs = TRUE,
                            verbose = FALSE) {
 
-
+    
+    # Check that cell_group_to_analyse or run_on_all_groups is set
+    if (is.na(cell_group_to_analyse) & !run_on_all_groups) {
+        stop('Either cell_group_to_analyse or run_on_all_groups must be set. Set ONE of these variables and try running the function again.')
+    }
+    
     # Quick check/trim of output folder string
     lastchar <- function(x){
         substr(x, nchar(x), nchar(x))
@@ -95,16 +102,32 @@ run_everything <- function(transcript_counts_table, cell_labels_table,
     cat('     Starting permutation analysis...\n')
     cat('------------------------------------------\n\n')
     cat('3. Running the permutation analysis using', permutations, 'permutations...\n')
-    permutation_pval_object <- get_permutation_pvals(filtered_counts_table,
-                                                     cell_labels_table,
-                                                     transcript_id_colname,
-                                                     gene_id_colname,
-                                                     cell_labels_colname,
-                                                     analysis_group_1 = cell_group_to_analyse,
-                                                     permutations = permutations,
-                                                     cores = cores,
-                                                     do_gene_level_comparisons = do_gene_level_comparisons,
-                                                     verbose = verbose)
+    if (is.na(run_on_all_groups)) {
+        cat('\tRunning', cell_group_to_analyse, 'against all other groups...\n')
+        permutation_pval_object <- get_permutation_pvals(filtered_counts_table,
+                                                         cell_labels_table,
+                                                         transcript_id_colname,
+                                                         gene_id_colname,
+                                                         cell_labels_colname,
+                                                         analysis_group_1 = cell_group_to_analyse,
+                                                         permutations = permutations,
+                                                         cores = cores,
+                                                         do_gene_level_comparisons = do_gene_level_comparisons,
+                                                         verbose = verbose)
+    } else if (run_on_all_groups) {
+        cat('\tRunning all groups against the dataset...\n')
+        permutation_pval_object <- get_permutation_pvals(filtered_counts_table,
+                                                         cell_labels_table,
+                                                         transcript_id_colname,
+                                                         gene_id_colname,
+                                                         cell_labels_colname,
+                                                         run_on_all_groups = run_on_all_groups,
+                                                         permutations = permutations,
+                                                         cores = cores,
+                                                         do_gene_level_comparisons = do_gene_level_comparisons,
+                                                         verbose = verbose)
+    }
+    
 
     cat('\n4. Saving permutation results to', output_folder, '\n\n')
     saveRDS(permutation_pval_object, file.path(output_folder, 'permutation_results.rds'))
