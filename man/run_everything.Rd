@@ -10,14 +10,16 @@ run_everything(
   transcript_id_colname,
   gene_id_colname,
   cell_labels_colname,
-  cell_group_to_analyse,
+  cell_group_to_analyse = NA,
   output_folder,
   gene_count_threshold = 20,
   collapse_isoforms_with_counts_below = 6,
   permutations = 10000,
   cores = 0,
+  run_on_all_groups = FALSE,
   do_gene_level_comparisons = TRUE,
-  generate_UMAPs = TRUE
+  generate_UMAPs = TRUE,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -53,6 +55,9 @@ is performed on the original set of data, and label shuffling occurs from permut
 \item{cores}{An integer representing the number of cores that the function should attempt to use. If left undefined, set to 0, or set
 to more cores than are available, defaults to all available cores.}
 
+\item{run_on_all_groups}{A boolean. If TRUE, ignores the cell_group_to_analyse argument and runs every group in a
+1 vs rest fashion. This can take a long time for large datasets, so should normally be FALSE. Defaults to FALSE.}
+
 \item{do_gene_level_comparisons}{A boolean. If TRUE, also runs a permutation analysis on gene level differences.
 A significant value indicates that there is a difference in transcript proportions visible at the gene level, but does not specify
 which transcripts show the change within the gene. Enabling this also allows for other automatic calculations such
@@ -61,6 +66,9 @@ as odds-ratio calculations. Defaults to TRUE.}
 \item{generate_UMAPs}{A boolean. Determines whether a UMAP should be calculated and plotted from the
 provided data. UMAP calculation can be somewhat computationally expensive, and therefore may be disabled if needed.
 Defaults to \code{TRUE}.}
+
+\item{verbose}{A boolean. Outputs verbose logging in the permutation function. Useful for cluster environments, where
+the normal output might not be correctly captured in stdout.}
 }
 \value{
 A list containing the output of \code{get_permutation_pvals()} and \code{make_plots()}.

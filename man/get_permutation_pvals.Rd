@@ -19,7 +19,8 @@ get_permutation_pvals(
   return_detailed_pvalue_tables = FALSE,
   report_adjusted_pvalues = TRUE,
   cutoff = 0.1,
-  log_contingency_table = FALSE
+  log_contingency_table = FALSE,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -71,6 +72,8 @@ data before calculations begin. With higher cutoffs, less data is filtered. To d
 
 \item{log_contingency_table}{A logical indicating whether the 2x2 contingency table should be log2 transformed before p-value calculations.
 Applies to all permutations. Default \code{FALSE}.}
+
+\item{verbose}{A logical indicating whether additional logging should be outputted to stdout. Default \code{FALSE}.}
 }
 \value{
 A \code{list} containing:
