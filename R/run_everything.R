@@ -102,7 +102,7 @@ run_everything <- function(transcript_counts_table, cell_labels_table,
     cat('     Starting permutation analysis...\n')
     cat('------------------------------------------\n\n')
     cat('3. Running the permutation analysis using', permutations, 'permutations...\n')
-    if (is.na(run_on_all_groups)) {
+    if (!run_on_all_groups) {
         cat('\tRunning', cell_group_to_analyse, 'against all other groups...\n')
         permutation_pval_object <- get_permutation_pvals(filtered_counts_table,
                                                          cell_labels_table,

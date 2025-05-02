@@ -28,6 +28,7 @@
 
 filter_counts_table <- function(transcript_counts_table,
                                 transcript_id_colname, gene_id_colname,
+                                remove_outlier_cells = T,
                                 gene_count_threshold = 20,
                                 autofiltering = F,
                                 cell_labels_table = NA,
@@ -63,12 +64,6 @@ filter_counts_table <- function(transcript_counts_table,
         stop(paste0(gene_id_colname,
                     " could not be found as a column name in your counts table.\nPlease check your column names and rerun this function."))
     }
-
-    #TODO: Make this work
-    # Stop if autofiltering is TRUE, but a cell_labels_table isn't provided.
-    #if ((autofiltering) & ((typeof(cell_labels_table) == 'logical') | !(is.na(cell_labels_colname)))) {
-    #    stop('Autofiltering is set to TRUE, but the cell_labels_table or cell_labels_colname is not provided.\nPlease provide these arguments and rerun the function.')
-    #}
 
     ### Function body
 
@@ -109,8 +104,8 @@ filter_counts_table <- function(transcript_counts_table,
 
     # Remove the genes from prop_calc_df too, just in case we're also filtering by gene_count_threshold
     prop_calc_df <- prop_calc_df[prop_calc_df[[transcript_id_colname]] %in% transcript_counts_table[[transcript_id_colname]], ]
-
-
+    
+    
     # Filter genes with counts below a threshold if argument is set
     if (gene_count_threshold > 0) {
 

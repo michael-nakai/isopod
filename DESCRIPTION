@@ -29,7 +29,8 @@ Imports:
     magrittr,
     checkmate,
     umap,
-    glue
+    glue,
+    scuttle
 Suggests:
     knitr,
     rmarkdown,
