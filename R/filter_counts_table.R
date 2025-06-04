@@ -3,34 +3,45 @@
 #' Filters a transcript counts table on multiple user-defined variables, including the ability to filter out genes with
 #' one associated transcript and genes with counts below a threshold.
 #'
-#' @param transcript_counts_table A dataframe with a column containing transcript IDs, a column with gene IDs for
+#' @param transcript_counts_table A dataframe with a column containing transcript IDs, a column with gene 
+#' IDs for
 #' each transcript, and counts for all transcripts in all cells, with cell IDs as subsequent column names.
-#' @param transcript_id_colname A string corresponding to the column name in transcript_counts_table where the transcript IDs are stored.
-#' @param gene_id_colname A string corresponding to the column name in transcript_counts_table where the gene IDs are stored.
-#' @param gene_count_threshold An integer. If the total counts for all transcripts in a gene is below this number, the transcripts will be filtered
-#' out of the table. Defaults to 20. 0 disables this step.
-#' @param autofiltering A boolean. If `TRUE`, removes genes where at least N cells per group do not contain counts for the gene, where N is half the cell
-#' count of the smallest group. Defaults to `FALSE`.
-#' @param cell_labels_table A dataframe with two columns: one listing all cell IDs, and the other listing the group that the cell ID belongs to. Only is
-#' required when autofiltering is `TRUE`. Defaults to `NA`.
-#' @param cell_labels_colname A string corresponding to the column name in `cell_labels_table` where the group information is stored. Only is required
-#' when `cell_labels_table` is provided. Defaults to NA.
-#' @param collapse_isoforms_with_counts_below An integer. If set to an integer higher than 1, isoforms within a gene that have n total counts or less will
-#' be collapsed together at a per-cell basis. This collapsing step is useful for reducing significant isoforms with very low counts, which may be biologically
-#' insignificant. This also may help reduce the number of p-value calculations in the permutation step, reducing computational load. Defaults to 6. Setting this
-#' to 0 disables the feature.
-#' @param autofilter_threshold A float between 0 - 1, representing the fraction of the smallest cell group needed to pass the autofiltering step.
-#' @return An object containing the dataframe representing the filtered transcript counts table, and a list of isoforms collapsed in each gene if
-#' `collapse_isoforms_with_counts_below` is greater than 0. The list of collapsed isoforms is of the form gene_id --> vector of collapsed isoform IDs.
-#' If the gene itself was filtered due to all isoforms being collapsed (i.e. if all isoforms in a gene didn't reach the threshold), the gene_id will return
-#' a character string explaining that all isoforms associated with the gene was removed.
+#' @param transcript_id_colname A string corresponding to the column name in transcript_counts_table where 
+#' the transcript IDs are stored.
+#' @param gene_id_colname A string corresponding to the column name in transcript_counts_table where the 
+#' gene IDs are stored.
+#' @param gene_count_threshold An integer. If the total counts for all transcripts in a gene is below this 
+#' number, the transcripts will be filtered out of the table. Defaults to 20. 0 disables this step.
+#' @param autofiltering A boolean. If `TRUE`, removes genes where at least N cells per group do not contain
+#' counts for the gene, where N is half the cell count of the smallest group. In almost all situations, 
+#' this should be turned off and not used. Defaults to `FALSE`.
+#' @param remove_outlier_cells A boolean. If `TRUE`, calls scuttle's `is.outlier()` function using 
+#' nmads = 5, log = T, and type = higher to filter out cells with extremely high counts. Defaults
+#' to `TRUE`.
+#' @param cell_labels_table A dataframe with two columns: one listing all cell IDs, and the other listing 
+#' the group that the cell ID belongs to. Only is required when autofiltering is `TRUE`. Defaults to `NA`.
+#' @param cell_labels_colname A string corresponding to the column name in `cell_labels_table` where the 
+#' group information is stored. Only is required when `cell_labels_table` is provided. Defaults to NA.
+#' @param collapse_isoforms_with_counts_below An integer. If set to an integer higher than 1, isoforms 
+#' within a gene that have n total counts or less will be collapsed together at a per-cell basis. This 
+#' collapsing step is useful for reducing significant isoforms with very low counts, which may be biologically
+#' insignificant. This also may help reduce the number of p-value calculations in the permutation step, 
+#' reducing computational load. Defaults to 6. Setting this to 0 disables the feature.
+#' @param autofilter_threshold A float between 0 - 1, representing the fraction of the smallest cell group 
+#' needed to pass the autofiltering step.
+#' @return An object containing the dataframe representing the filtered transcript counts table, and a 
+#' list of isoforms collapsed in each gene if `collapse_isoforms_with_counts_below` is greater than 0. 
+#' The list of collapsed isoforms is of the form gene_id --> vector of collapsed isoform IDs. If the gene 
+#' itself was filtered due to all isoforms being collapsed (i.e. if all isoforms in a gene didn't reach 
+#' the threshold), the gene_id will return a character string explaining that all isoforms associated with 
+#' the gene was removed.
 #' @export
 
 filter_counts_table <- function(transcript_counts_table,
                                 transcript_id_colname, gene_id_colname,
-                                remove_outlier_cells = T,
                                 gene_count_threshold = 20,
                                 autofiltering = F,
+                                remove_outlier_cells = T,
                                 cell_labels_table = NA,
                                 cell_labels_colname = NA,
                                 collapse_isoforms_with_counts_below = 6,
@@ -69,11 +80,29 @@ filter_counts_table <- function(transcript_counts_table,
 
     # INTERNAL SETUP
     collapsed_list <- NA
-
-    # Find gene counts
-    write('Setting up data', stdout())
+    
+    # Filter cell outliers before we do anything else
     transcript_counts_table <- as.data.frame(transcript_counts_table)
-
+    
+    if (remove_outlier_cells) {
+        
+        write('Filtering high cell count outliers', stdout())
+        
+        temptab <- as.data.frame(matrix(NA, nrow = nrow(cell_labels_table), ncol = 2))
+        colnames(temptab) <- c('cell_id', 'cell_counts_summed')
+        temp_counts_tab <- transcript_counts_table[, !(colnames(transcript_counts_table) %in% 
+                                                           c(transcript_id_colname, gene_id_colname))]
+        temptab$cell_counts_summed <- colSums(temp_counts_tab)
+        temptab$cell_id <- colnames(temp_counts_tab)
+        logstrictoutliers <- scuttle::isOutlier(temptab$cell_counts_summed, type = 'higher', log = T, nmads = 5)
+        
+        # Remove outliers from tabs
+        transcript_counts_table <- transcript_counts_table[, c(T, T, !logstrictoutliers)]
+        cell_labels_table <- cell_labels_table[!logstrictoutliers, ]
+        
+    }
+    
+    # Find gene counts
     transcript_counts_table <- transcript_counts_table[order(transcript_counts_table[[gene_id_colname]], transcript_counts_table[[transcript_id_colname]]), ]
     prop_calc_df <- transcript_counts_table %>% dplyr::select({{transcript_id_colname}}, {{gene_id_colname}})
     nolabel_transcript_counts_table <- transcript_counts_table[ , !(colnames(transcript_counts_table) %in% c(transcript_id_colname, gene_id_colname))]
@@ -88,7 +117,6 @@ filter_counts_table <- function(transcript_counts_table,
     transcript_counts_table <- transcript_counts_table[, c(which(colnames(transcript_counts_table) == transcript_id_colname),
                                                            which(colnames(transcript_counts_table) == gene_id_colname),
                                                            which(!(colnames(transcript_counts_table) %in% c(transcript_id_colname, gene_id_colname))))]
-
 
     # Filter genes with one associated transcript if argument is set
     write('Filtering genes with one associated transcript', stdout())
