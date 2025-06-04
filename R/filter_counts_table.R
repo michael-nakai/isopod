@@ -95,6 +95,7 @@ filter_counts_table <- function(transcript_counts_table,
         temptab$cell_counts_summed <- colSums(temp_counts_tab)
         temptab$cell_id <- colnames(temp_counts_tab)
         logstrictoutliers <- scuttle::isOutlier(temptab$cell_counts_summed, type = 'higher', log = T, nmads = 5)
+        logstrictoutliers <- as.logical(logstrictoutliers)
         
         # Remove outliers from tabs
         transcript_counts_table <- transcript_counts_table[, c(T, T, !logstrictoutliers)]
