@@ -10,8 +10,9 @@ run_everything(
   transcript_id_colname,
   gene_id_colname,
   cell_labels_colname,
-  cell_group_to_analyse = NA,
   output_folder,
+  cell_group_to_analyse = NA,
+  remove_outlier_cells = T,
   gene_count_threshold = 20,
   collapse_isoforms_with_counts_below = 6,
   permutations = 10000,
@@ -30,38 +31,47 @@ the column names for all columns containing these counts.}
 \item{cell_labels_table}{A dataframe with two columns: one with all cell IDs, and the other with the group
 that each cell ID belongs to.}
 
-\item{transcript_id_colname}{A string corresponding to the column name in transcript_counts_table where the transcript IDs are stored.}
+\item{transcript_id_colname}{A string corresponding to the column name in transcript_counts_table where the
+transcript IDs are stored.}
 
-\item{gene_id_colname}{A string corresponding to the column name in transcript_counts_table where the gene IDs are stored.}
+\item{gene_id_colname}{A string corresponding to the column name in transcript_counts_table where the gene IDs
+are stored.}
 
-\item{cell_labels_colname}{A string corresponding to the column name in cell_labels_table where the group information is stored.}
+\item{cell_labels_colname}{A string corresponding to the column name in cell_labels_table where the group
+information is stored.}
 
-\item{cell_group_to_analyse}{A string corresponding to the cell group to compare against the rest of the dataset. This should be a cell group
-in cell_labels_table.}
+\item{output_folder}{A filepath to an output folder where data will be saved. If the folder doesn't exist, Isopod
+will attempt to create it.}
 
-\item{output_folder}{A filepath to an output folder where data will be saved. If the folder doesn't exist, Isopod will attempt to create it.}
+\item{cell_group_to_analyse}{A string corresponding to the cell group to compare against the rest of the dataset.
+This should be a cell group in cell_labels_table.}
 
-\item{gene_count_threshold}{An integer. If the total counts for all transcripts in a gene is below this number, the transcripts will be filtered
-out of the table. Defaults to 20.}
+\item{remove_outlier_cells}{A boolean. If \code{TRUE}, calls scuttle's \code{is.outlier()} function using nmads = 5,
+log = T, and type = higher to filter out cells with extremely high counts. Defaults to \code{TRUE}.}
 
-\item{collapse_isoforms_with_counts_below}{An integer. If set to an integer higher than 1, isoforms within a gene that have n total counts or less will
-be collapsed together at a per-cell basis. This collapsing step is useful for reducing significant isoforms with very low counts, which may be biologically
-insignificant. This also may help reduce the number of p-value calculations in the permutation step, reducing computational load. Defaults to 6. Setting this
-to 0 disables the feature.}
+\item{gene_count_threshold}{An integer. If the total counts for all transcripts in a gene is below this number,
+the transcripts will be filtered out of the table. Defaults to 20.}
 
-\item{permutations}{An integer corresponding to the number of permutations that should be run. Default 10000. Note that the first p-value calculation
-is performed on the original set of data, and label shuffling occurs from permutation 2 and onwards.}
+\item{collapse_isoforms_with_counts_below}{An integer. If set to an integer higher than 1, isoforms within a gene
+that have n total counts or less will be collapsed together at a per-cell basis. This collapsing step is useful
+for reducing significant isoforms with very low counts, which may be biologically insignificant. This also may
+help reduce the number of p-value calculations in the permutation step, reducing computational load. Defaults to 6.
+Setting this to 0 disables the feature.}
 
-\item{cores}{An integer representing the number of cores that the function should attempt to use. If left undefined, set to 0, or set
-to more cores than are available, defaults to all available cores.}
+\item{permutations}{An integer corresponding to the number of permutations that should be run. Default 10000.
+Note that the first p-value calculation is performed on the original set of data, and label shuffling occurs
+from permutation 2 and onwards.}
+
+\item{cores}{An integer representing the number of cores that the function should attempt to use. If left undefined,
+set to 0, or set to more cores than are available, defaults to all available cores.}
 
 \item{run_on_all_groups}{A boolean. If TRUE, ignores the cell_group_to_analyse argument and runs every group in a
 1 vs rest fashion. This can take a long time for large datasets, so should normally be FALSE. Defaults to FALSE.}
 
 \item{do_gene_level_comparisons}{A boolean. If TRUE, also runs a permutation analysis on gene level differences.
-A significant value indicates that there is a difference in transcript proportions visible at the gene level, but does not specify
-which transcripts show the change within the gene. Enabling this also allows for other automatic calculations such
-as odds-ratio calculations. Defaults to TRUE.}
+A significant value indicates that there is a difference in transcript proportions visible at the gene level, but
+does not specify which transcripts show the change within the gene. Enabling this also allows for other automatic
+calculations such as odds-ratio calculations. Defaults to TRUE.}
 
 \item{generate_UMAPs}{A boolean. Determines whether a UMAP should be calculated and plotted from the
 provided data. UMAP calculation can be somewhat computationally expensive, and therefore may be disabled if needed.

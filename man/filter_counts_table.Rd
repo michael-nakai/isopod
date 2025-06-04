@@ -10,6 +10,7 @@ filter_counts_table(
   gene_id_colname,
   gene_count_threshold = 20,
   autofiltering = F,
+  remove_outlier_cells = T,
   cell_labels_table = NA,
   cell_labels_colname = NA,
   collapse_isoforms_with_counts_below = 6,
@@ -17,37 +18,49 @@ filter_counts_table(
 )
 }
 \arguments{
-\item{transcript_counts_table}{A dataframe with a column containing transcript IDs, a column with gene IDs for
+\item{transcript_counts_table}{A dataframe with a column containing transcript IDs, a column with gene
+IDs for
 each transcript, and counts for all transcripts in all cells, with cell IDs as subsequent column names.}
 
-\item{transcript_id_colname}{A string corresponding to the column name in transcript_counts_table where the transcript IDs are stored.}
+\item{transcript_id_colname}{A string corresponding to the column name in transcript_counts_table where
+the transcript IDs are stored.}
 
-\item{gene_id_colname}{A string corresponding to the column name in transcript_counts_table where the gene IDs are stored.}
+\item{gene_id_colname}{A string corresponding to the column name in transcript_counts_table where the
+gene IDs are stored.}
 
-\item{gene_count_threshold}{An integer. If the total counts for all transcripts in a gene is below this number, the transcripts will be filtered
-out of the table. Defaults to 20. 0 disables this step.}
+\item{gene_count_threshold}{An integer. If the total counts for all transcripts in a gene is below this
+number, the transcripts will be filtered out of the table. Defaults to 20. 0 disables this step.}
 
-\item{autofiltering}{A boolean. If \code{TRUE}, removes genes where at least N cells per group do not contain counts for the gene, where N is half the cell
-count of the smallest group. Defaults to \code{FALSE}.}
+\item{autofiltering}{A boolean. If \code{TRUE}, removes genes where at least N cells per group do not contain
+counts for the gene, where N is half the cell count of the smallest group. In almost all situations,
+this should be turned off and not used. Defaults to \code{FALSE}.}
 
-\item{cell_labels_table}{A dataframe with two columns: one listing all cell IDs, and the other listing the group that the cell ID belongs to. Only is
-required when autofiltering is \code{TRUE}. Defaults to \code{NA}.}
+\item{remove_outlier_cells}{A boolean. If \code{TRUE}, calls scuttle's \code{is.outlier()} function using
+nmads = 5, log = T, and type = higher to filter out cells with extremely high counts. Defaults
+to \code{TRUE}.}
 
-\item{cell_labels_colname}{A string corresponding to the column name in \code{cell_labels_table} where the group information is stored. Only is required
-when \code{cell_labels_table} is provided. Defaults to NA.}
+\item{cell_labels_table}{A dataframe with two columns: one listing all cell IDs, and the other listing
+the group that the cell ID belongs to. Only is required when autofiltering is \code{TRUE}. Defaults to \code{NA}.}
 
-\item{collapse_isoforms_with_counts_below}{An integer. If set to an integer higher than 1, isoforms within a gene that have n total counts or less will
-be collapsed together at a per-cell basis. This collapsing step is useful for reducing significant isoforms with very low counts, which may be biologically
-insignificant. This also may help reduce the number of p-value calculations in the permutation step, reducing computational load. Defaults to 6. Setting this
-to 0 disables the feature.}
+\item{cell_labels_colname}{A string corresponding to the column name in \code{cell_labels_table} where the
+group information is stored. Only is required when \code{cell_labels_table} is provided. Defaults to NA.}
 
-\item{autofilter_threshold}{A float between 0 - 1, representing the fraction of the smallest cell group needed to pass the autofiltering step.}
+\item{collapse_isoforms_with_counts_below}{An integer. If set to an integer higher than 1, isoforms
+within a gene that have n total counts or less will be collapsed together at a per-cell basis. This
+collapsing step is useful for reducing significant isoforms with very low counts, which may be biologically
+insignificant. This also may help reduce the number of p-value calculations in the permutation step,
+reducing computational load. Defaults to 6. Setting this to 0 disables the feature.}
+
+\item{autofilter_threshold}{A float between 0 - 1, representing the fraction of the smallest cell group
+needed to pass the autofiltering step.}
 }
 \value{
-An object containing the dataframe representing the filtered transcript counts table, and a list of isoforms collapsed in each gene if
-\code{collapse_isoforms_with_counts_below} is greater than 0. The list of collapsed isoforms is of the form gene_id --> vector of collapsed isoform IDs.
-If the gene itself was filtered due to all isoforms being collapsed (i.e. if all isoforms in a gene didn't reach the threshold), the gene_id will return
-a character string explaining that all isoforms associated with the gene was removed.
+An object containing the dataframe representing the filtered transcript counts table, and a
+list of isoforms collapsed in each gene if \code{collapse_isoforms_with_counts_below} is greater than 0.
+The list of collapsed isoforms is of the form gene_id --> vector of collapsed isoform IDs. If the gene
+itself was filtered due to all isoforms being collapsed (i.e. if all isoforms in a gene didn't reach
+the threshold), the gene_id will return a character string explaining that all isoforms associated with
+the gene was removed.
 }
 \description{
 Filters a transcript counts table on multiple user-defined variables, including the ability to filter out genes with
